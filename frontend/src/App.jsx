@@ -9,9 +9,8 @@ function App() {
 
   return (
     <>
-      <div class="App">
+      <div>
         <Header />
-        <h1>ログインを実装しようね</h1>
         <Home />
       </div>
     </>

@@ -2,11 +2,13 @@ import { signInWithPopup } from 'firebase/auth';
 import React from 'react'
 import {auth, provider} from "./firebase";
 import {useAuthState} from "react-firebase-hooks/auth";
+import Container from 'react-bootstrap/Container';
 
 function Home() {
     const [user] = useAuthState(auth);
     return (
-        <div>
+        <Container className="text-center">
+            <h1>ログインを実装しようね</h1>
             {user ? (
             <div>
                 <UserInfo />
@@ -15,7 +17,7 @@ function Home() {
         ) : (
             <SignInButton />
         )}
-        </div>
+        </Container>
     )
 }
 
