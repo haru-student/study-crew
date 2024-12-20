@@ -2,7 +2,9 @@ import React from 'react'
 
 function Footer() {
   return (
-    <div>Footer</div>
+    <footer className="footer bg-dark text-white text-center py-3 mt-5">
+      © 2024 Study Crew | All Rights Reserved
+    </footer>
   )
 }
 
