@@ -4,7 +4,7 @@ import Toppage from './Toppage';
 
 function Home({user}) {
     if (user){
-        return <Toppage />
+        return <Toppage user={user}/>
     }
     else {
         return <Introduction />

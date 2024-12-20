@@ -9,7 +9,7 @@ function Introduction() {
         const [user] = useAuthState(auth);
         return (
             <div  className="text-center">
-            <Container className="toppage">
+            <Container className="introduction">
                 <h1>Study Crewにようこそ！</h1>
                 <p>
                     <b>Study Crew</b>は、あなたの学びの仲間を見つけ、一緒に成長するためのサービスです。
