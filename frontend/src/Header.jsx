@@ -8,15 +8,15 @@ import { signIn, signOut } from './Login';
 
 function Header({ user }) {
   return (
+    
     <Navbar expand="lg" className="bg-body-tertiary mb-5">
       <Container>
-        <Navbar.Brand as={Link} to="/">Study Crew</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">Open Crew</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/">ホーム</Nav.Link>
-            <Nav.Link as={Link} to={`/meetsup`}>勉強会を探す</Nav.Link>
-            <Nav.Link as={Link} to={`/chatgroup`}>チャットグループ</Nav.Link>
+            <Nav.Link as={Link} to={`/meetsup`}>イベントを探す</Nav.Link>
           </Nav>
           {user ? (
             <Button className="btn-danger" onClick={signOut}>

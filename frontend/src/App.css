@@ -15,3 +15,46 @@
   height: 60%;
   width: auto;
 }
+
+.detail{
+  width: 800px;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right:auto;
+}
+
+.content{
+  margin-left: 25px;
+}
+
+.image{
+  width: 500px;
+  max-width: 90%;
+  height: auto;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.icon {
+  width: 30px;
+  height:auto;
+}
+
+.event {
+  transition: transform 0.3s ease, box-shadow 0.3s ease; /* アニメーションの設定 */
+  width: 100%;
+}
+
+.event:hover {
+  transform: scale(1.05); /* サイズを拡大 */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 影を強調 */
+}
+
+.chat {
+  display: inline-block;display: inline-block;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: black;
+}
+.chat:hover {
+  transform: scale(1.1);
+}
