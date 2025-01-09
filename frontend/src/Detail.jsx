@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "./firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Col, Container, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
@@ -9,22 +9,46 @@ function Detail({ user }) {
   const { id } = useParams();
   const [circle, setCircle] = useState(null);
 
+  // 過去イベントを削除するロジック
+  const filterExpiredEvents = (events) => {
+    const currentDate = new Date();
+    return events.filter(
+      (event) => new Date(`${event.date}T${event.endTime}`) >= currentDate
+    );
+  };
+
   // idを使ってデータを取得する関数
   const getCircleDataById = async (id) => {
     const circleRef = doc(db, "circles", id);
     const circleSnapshot = await getDoc(circleRef);
     if (circleSnapshot.exists()) {
-      return circleSnapshot.data();
+      return { id: circleSnapshot.id, ...circleSnapshot.data() };
     } else {
       console.log("No such document!");
       return null;
     }
   };
 
+  // Firestoreを更新する関数
+  const updateCircleEvents = async (id, updatedEvents) => {
+    const circleRef = doc(db, "circles", id);
+    await updateDoc(circleRef, { events: updatedEvents });
+  };
+
   useEffect(() => {
     const fetchCircleData = async () => {
       const circleData = await getCircleDataById(id);
-      setCircle(circleData);
+
+      if (circleData) {
+        const filteredEvents = filterExpiredEvents(circleData.events);
+
+        // 期限切れのイベントがある場合にFirestoreを更新
+        if (filteredEvents.length !== circleData.events.length) {
+          await updateCircleEvents(id, filteredEvents);
+        }
+
+        setCircle({ ...circleData, events: filteredEvents });
+      }
     };
 
     fetchCircleData();
@@ -33,7 +57,7 @@ function Detail({ user }) {
   if (!circle) {
     return <div>Loading...</div>;
   }
-  const currentDate = new Date();
+
   return (
     <Container className="detail">
       <Row>
@@ -46,111 +70,108 @@ function Detail({ user }) {
               <p>{circle.detail}</p>
             </div>
           )}
-          {circle.events.filter((event) => new Date(event.date) >= currentDate)
-            .length > 0 && (
+          {circle.events.length > 0 && (
             <div>
               <h2 className="fs-3">イベントスケジュール</h2>
               <ul className="list-unstyled">
-                {circle.events
-                  .filter((event) => new Date(event.date) >= currentDate)
-                  .map((event, index) => (
-                    <li key={index} className="border mb-3 p-2 fs-5">
-                      <h3>
-                        {event.date}{" "}
-                        {event.startTime
-                          ? `${event.startTime} 〜 ${event.endTime || ""}`
-                          : event.endTime
-                          ? `開始時刻未定 〜 ${event.endTime}`
-                          : ""}
-                      </h3>
-                      <div>
-                        {circle.type === "対面" && (
-                          <div className="d-flex align-items-center">
-                            <img
-                              src="/geo-alt.svg"
-                              alt=""
-                              className="me-2 icon"
-                            />
-                            <p className="mb-0">{event.eventlocation}</p>
-                          </div>
-                        )}
-                        {circle.type === "対面+オンライン" && (
-                          <div className="d-flex align-items-center">
-                            <img
-                              src="/geo-alt.svg"
-                              alt=""
-                              className="me-2 icon"
-                            />
+                {circle.events.map((event, index) => (
+                  <li key={index} className="border mb-3 p-2 fs-5">
+                    <h3>
+                      {event.date.replace(/-/g, "/")}{" "}
+                      {event.startTime
+                        ? `${event.startTime} 〜 ${event.endTime || ""}`
+                        : event.endTime
+                        ? `開始時刻未定 〜 ${event.endTime}`
+                        : ""}
+                    </h3>
+                    <div>
+                      {circle.type === "対面" && (
+                        <div className="d-flex align-items-center">
+                          <img
+                            src="/geo-alt.svg"
+                            alt=""
+                            className="me-2 icon"
+                          />
+                          <p className="mb-0">{event.eventlocation}</p>
+                        </div>
+                      )}
+                      {circle.type === "対面+オンライン" && (
+                        <div className="d-flex align-items-center">
+                          <img
+                            src="/geo-alt.svg"
+                            alt=""
+                            className="me-2 icon"
+                          />
+                          <p className="mb-0">
+                            {event.eventlocation}&オンライン
+                          </p>
+                        </div>
+                      )}
+                      {circle.type === "オンライン" && (
+                        <div className="d-flex align-items-center">
+                          <img
+                            src="/geo-alt.svg"
+                            alt=""
+                            className="me-2 icon"
+                          />
+                          <p className="mb-0">オンライン</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="d-flex align-items-center">
+                      {(circle.type === "対面" ||
+                        circle.type === "対面+オンライン") && (
+                        <div className="d-flex align-items-center">
+                          <img
+                            src="/people.svg"
+                            alt=""
+                            className="me-2 icon"
+                          />
+                          {event.inPersonCapacity ? (
                             <p className="mb-0">
-                              {event.eventlocation}&オンライン
+                              対面参加人数：{event.inpersonMember.length}/
+                              {event.inPersonCapacity}人
                             </p>
-                          </div>
-                        )}
-                        {circle.type === "オンライン" && (
-                          <div className="d-flex align-items-center">
-                            <img
-                              src="/geo-alt.svg"
-                              alt=""
-                              className="me-2 icon"
-                            />
-                            <p className="mb-0">オンライン</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="d-flex align-items-center">
-                        {(circle.type === "対面" ||
-                          circle.type === "対面+オンライン") && (
-                          <div className="d-flex align-items-center">
-                            <img
-                              src="/people.svg"
-                              alt=""
-                              className="me-2 icon"
-                            />
-                            {event.inPersonCapacity ? (
-                              <p className="mb-0">
-                                対面参加人数：{event.inpersonMember.length}/
-                                {event.inPersonCapacity}人
-                              </p>
-                            ) : (
-                              <p className="mb-0">
-                                対面参加人数：{event.inpersonMember.length}
-                                人(参加人数制限なし)
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="d-flex align-items-center">
-                        {(circle.type === "対面+オンライン" ||
-                          circle.type === "オンライン") && (
-                          <div className="d-flex align-items-center">
-                            <img
-                              src="/people.svg"
-                              alt=""
-                              className="me-2 icon"
-                            />
-                            {event.onlineCapacity ? (
-                              <p className="mb-0">
-                                オンライン参加人数：{event.onlineMember.length}/
-                                {event.onlineCapacity}人
-                              </p>
-                            ) : (
-                              <p className="mb-0">
-                                オンライン参加人数：{event.onlineMember.length}
-                                人(参加人数制限なし)
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  ))}
+                          ) : (
+                            <p className="mb-0">
+                              対面参加人数：{event.inpersonMember.length}
+                              人(参加人数制限なし)
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="d-flex align-items-center">
+                      {(circle.type === "対面+オンライン" ||
+                        circle.type === "オンライン") && (
+                        <div className="d-flex align-items-center">
+                          <img
+                            src="/people.svg"
+                            alt=""
+                            className="me-2 icon"
+                          />
+                          {event.onlineCapacity ? (
+                            <p className="mb-0">
+                              オンライン参加人数：{event.onlineMember.length}/
+                              {event.onlineCapacity}人
+                            </p>
+                          ) : (
+                            <p className="mb-0">
+                              オンライン参加人数：{event.onlineMember.length}
+                              人(参加人数制限なし)
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
           )}
         </Col>
         <Col sm={12} md={4}>
-          <div className="border-bottom mb-2">
+        <div className="border-bottom mb-2">
             <div className="d-flex align-items-center">
               <img src="/calendar2.svg" alt="" className="me-2" />
               <p className="mb-0">開催日時/頻度</p>

@@ -43,6 +43,7 @@ function Newsession({ user }) {
   const [onlineMember, setOnline] = useState([]);
   const [inpersonMember, setInperson] = useState([]);
   const [notes, setNotes] = useState(""); //特記事項
+  const [hosts, setHosts] = useState([user.uid]);
 
   const [loading, setLoading] = useState(false);
 
@@ -262,7 +263,7 @@ function Newsession({ user }) {
         detail: detail,
         events: eventDates,
         members: members,
-        host: user.uid,
+        host: hosts,
       });
 
       // フォームのリセット
@@ -280,6 +281,7 @@ function Newsession({ user }) {
       setFile(null);
       setEventDates([]);
       setMembers([]);
+      setHosts([user.uid]);
 
       // 画面遷移
       setLoading(false);
