@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { db } from "./firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { Col, Container, Row } from "react-bootstrap";
+import { Col, Container, Row, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { getCircleDataById, updateCircleEvents, newMember } from "./dbControl";
 
 function Detail({ user }) {
   const { id } = useParams();
@@ -15,24 +14,6 @@ function Detail({ user }) {
     return events.filter(
       (event) => new Date(`${event.date}T${event.endTime}`) >= currentDate
     );
-  };
-
-  // idを使ってデータを取得する関数
-  const getCircleDataById = async (id) => {
-    const circleRef = doc(db, "circles", id);
-    const circleSnapshot = await getDoc(circleRef);
-    if (circleSnapshot.exists()) {
-      return { id: circleSnapshot.id, ...circleSnapshot.data() };
-    } else {
-      console.log("No such document!");
-      return null;
-    }
-  };
-
-  // Firestoreを更新する関数
-  const updateCircleEvents = async (id, updatedEvents) => {
-    const circleRef = doc(db, "circles", id);
-    await updateDoc(circleRef, { events: updatedEvents });
   };
 
   useEffect(() => {
@@ -122,11 +103,7 @@ function Detail({ user }) {
                       {(circle.type === "対面" ||
                         circle.type === "対面+オンライン") && (
                         <div className="d-flex align-items-center">
-                          <img
-                            src="/people.svg"
-                            alt=""
-                            className="me-2 icon"
-                          />
+                          <img src="/people.svg" alt="" className="me-2 icon" />
                           {event.inPersonCapacity ? (
                             <p className="mb-0">
                               対面参加人数：{event.inpersonMember.length}/
@@ -145,11 +122,7 @@ function Detail({ user }) {
                       {(circle.type === "対面+オンライン" ||
                         circle.type === "オンライン") && (
                         <div className="d-flex align-items-center">
-                          <img
-                            src="/people.svg"
-                            alt=""
-                            className="me-2 icon"
-                          />
+                          <img src="/people.svg" alt="" className="me-2 icon" />
                           {event.onlineCapacity ? (
                             <p className="mb-0">
                               オンライン参加人数：{event.onlineMember.length}/
@@ -171,7 +144,7 @@ function Detail({ user }) {
           )}
         </Col>
         <Col sm={12} md={4}>
-        <div className="border-bottom mb-2">
+          <div className="border-bottom mb-2">
             <div className="d-flex align-items-center">
               <img src="/calendar2.svg" alt="" className="me-2" />
               <p className="mb-0">開催日時/頻度</p>
@@ -237,6 +210,31 @@ function Detail({ user }) {
               <p className="mb-0">チャット</p>
             </div>
           </Link>
+          {user && !circle.members.includes(user.uid) && (
+            <Button
+              variant="primary mt-3r"
+              className="d-block mx-auto my-3"
+              onClick={async () => {
+                try {
+                  await newMember(id, user.uid); // 非同期関数を呼び出す
+                  alert("グループへの参加が成功しました!");
+                } catch (error) {
+                  console.error("グループへの参加に失敗しました:", error);
+                  alert(
+                    "グループへの参加に失敗しました。もう一度お試しください。"
+                  );
+                }
+              }}
+            >
+              グループに参加する
+            </Button>
+          )}
+
+          {user && circle.members.includes(user.uid) && (
+            <Button variant="danger mt-3r" className="d-block mx-auto my-3">
+              グループを退会する
+            </Button>
+          )}
           <h2 className="fs-5 mt-3">活動の記録</h2>
           <Link to={`/blog/${id}`} className="text-decoration-none text-center">
             <p>Show more</p>

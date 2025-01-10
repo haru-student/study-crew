@@ -49,8 +49,8 @@ function Meetups({ user }) {
   const isEventExpired = (circle) => {
     if (circle.freq !== "単発") return false;
 
-    const [datePart, timePart] = circle.oneOff.split(/\s+/); // "2025/01/09 20:00～21:00" を分解
-    const endTime = timePart.split("～")[1]; // 終了時刻を抽出
+    const [datePart, timePart] = circle.oneOff.split(/\s+/);
+    const endTime = timePart.split("～")[1];
     const eventEndDateTime = new Date(
       `${datePart.replace(/\//g, "-")}T${endTime}`
     );
@@ -59,7 +59,7 @@ function Meetups({ user }) {
 
   // Storage のファイルを削除する関数
   const deleteFile = async (fileURL) => {
-    if (!fileURL) return; // ファイルが存在しない場合は何もしない
+    if (!fileURL) return;
     try {
       const storage = getStorage();
       const fileRef = ref(storage, fileURL);
