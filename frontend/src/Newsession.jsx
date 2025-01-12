@@ -5,9 +5,9 @@ import Container from "react-bootstrap/esm/Container";
 import { db } from "./firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { storage } from "./firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { RingLoader } from "react-spinners";
+import { uploader} from "./handleImage";
+import Resizer from 'react-image-file-resizer';
 
 function Newsession({ user }) {
   const navigate = useNavigate();
@@ -21,13 +21,14 @@ function Newsession({ user }) {
   const [date, setDate] = useState(""); //オンラインurl公開日
   const [fee, setFee] = useState(""); //通常の参加料金
   const [detail, setDetail] = useState(""); //概要
-  const [file, setFile] = useState(null); //画像ファイル
+  const [file, setFile] = useState(""); //画像ファイル
+  const [fileName, setFileName] = useState("");
   const [fileURL, setFileURL] = useState(""); //ファイルurl
   const [members, setMembers] = useState([user.uid]); //グループメンバー
 
   const [event, setEvent] = useState(""); //イベント名
   const [eventType, setEventType] = useState(""); //開催形式
-  const [freq, setFreq] = useState(null); //開催回数
+  const [freq, setFreq] = useState(""); //開催回数
   const [freqInput, setFreqInput] = useState(""); //開催頻度
   const [oneDate, setOneDate] = useState(""); //単発開催日
   const [oneStart, setOneStart] = useState(""); //単発開始時間
@@ -38,14 +39,43 @@ function Newsession({ user }) {
   const [endTime, setEndTime] = useState(""); // 終了時刻
   const [eventlocation, setEventlocation] = useState("開催場所未定"); //各開催日の開催場所。
   const [type, setType] = useState("");
-  const [inPersonCapacity, setInPersonCapacity] = useState(null); // 対面の参加定員
-  const [onlineCapacity, setOnlineCapacity] = useState(null); // オンラインの参加定員
+  const [inPersonCapacity, setInPersonCapacity] = useState(""); // 対面の参加定員
+  const [onlineCapacity, setOnlineCapacity] = useState(""); // オンラインの参加定員
   const [onlineMember, setOnline] = useState([]);
   const [inpersonMember, setInperson] = useState([]);
   const [notes, setNotes] = useState(""); //特記事項
   const [hosts, setHosts] = useState([user.uid]);
+  const [oneOffURL, setOneOffURL] = useState("");
+  const [oneOffPass, setOneOffPass] = useState("");
+  const [oneOffURLDate, setOneOffURLDate] = useState("");
+  const [oneOnlineCapa, setoneOnCapa] = useState("");
+  const [oneinCapa, setOneinCapa] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];  // e.target.files[0]でファイルを取得
+    setFileName(file.name);
+    if (file) {
+  
+      Resizer.imageFileResizer(
+        file,
+        1800, // 最大幅
+        1200, // 最大高さ
+        'JPEG', // 出力フォーマット
+        90, // 圧縮品質（0〜100）
+        0, // 回転角度
+        async (resizedImage) => {
+          const blob = await fetch(resizedImage).then(r => r.blob());
+          setFile(blob); // リサイズ後の画像を保存
+        },
+        'base64' // Base64形式で取得
+      );
+    }
+  };
+  
+
 
   const handleAddEvent = () => {
     const eventDateOnly = new Date(eventDate);
@@ -63,7 +93,8 @@ function Newsession({ user }) {
     }
 
     if (eventDate) {
-      setEventDate(eventDate.replace(/-/g, '/'));
+      const currentTime = new Date().getTime();
+      setEventDate(eventDate);
       const newEvent = {
         date: eventDate,
         type: type,
@@ -74,33 +105,39 @@ function Newsession({ user }) {
         inpersonMember: inpersonMember,
         eventlocation: eventlocation,
         inPersonCapacity:
-          eventType === "対面" || eventType === "対面+オンライン"
+          type === "対面" || type === "対面+オンライン"
             ? inPersonCapacity
             : null,
         onlineCapacity:
-          eventType === "オンライン" || eventType === "対面+オンライン"
+          type === "オンライン" || type === "対面+オンライン"
             ? onlineCapacity
             : null,
         url:
-          eventType === "オンライン" || eventType === "対面+オンライン"
+          type === "オンライン" || type === "対面+オンライン"
             ? URL
             : "",
         password:
-          eventType === "オンライン" || eventType === "対面+オンライン"
+          type === "オンライン" || type === "対面+オンライン"
             ? pass
             : "",
         publishDate:
-          eventType === "オンライン" || eventType === "対面+オンライン"
+          type === "オンライン" || type === "対面+オンライン"
             ? date
             : "",
+        identify: currentTime
       };
+      Object.keys(newEvent).forEach((key) => {
+        if (newEvent[key] === null || newEvent[key] === "") {
+          delete newEvent[key];
+        }
+      });
       setEventDates([...eventDates, newEvent]);
       setEventlocation(location);
       setEventDate("");
       setStartTime("");
       setEndTime("");
-      setInPersonCapacity(null);
-      setOnlineCapacity(null);
+      setInPersonCapacity("");
+      setOnlineCapacity("");
       setURL("");
       setPass("");
       setDate("");
@@ -114,102 +151,6 @@ function Newsession({ user }) {
     const updatedEventDates = eventDates.filter((_, i) => i !== index);
     setEventDates(updatedEventDates);
   };
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = async () => {
-          const targetAspectRatio = 4 / 3;
-          const targetWidth = img.width; // 任意の幅 (必要に応じて調整)
-          const targetHeight = targetWidth / targetAspectRatio;
-  
-          const canvas = document.createElement("canvas");
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
-  
-          const ctx = canvas.getContext("2d");
-  
-          const sourceAspectRatio = img.width / img.height;
-          let sx, sy, sWidth, sHeight;
-  
-          if (sourceAspectRatio > targetAspectRatio) {
-            // 横長画像の場合、幅を縮小
-            sHeight = img.height;
-            sWidth = img.height * targetAspectRatio;
-            sx = (img.width - sWidth) / 2; // 横中央にトリミング
-            sy = 0;
-          } else {
-            // 縦長画像の場合、高さを縮小
-            sWidth = img.width;
-            sHeight = img.width / targetAspectRatio;
-            sx = 0;
-            sy = (img.height - sHeight) / 2; // 縦中央にトリミング
-          }
-  
-          // Canvasにリサイズ&トリミングして描画
-          ctx.drawImage(
-            img,
-            sx,
-            sy,
-            sWidth,
-            sHeight,
-            0,
-            0,
-            targetWidth,
-            targetHeight
-          );
-  
-          // 結果画像をJPEG形式でデータURLとして取得
-          const resizedImage = canvas.toDataURL("image/jpeg");
-  
-          // 画像をアップロード
-          const file = dataURLtoFile(resizedImage, selectedFile.name);  // データURLをFileオブジェクトに変換
-          const fileURL = await uploader(file); // 画像をアップロード
-  
-          // アップロードした画像のURLを表示
-          if (fileURL) {
-            const outputImg = document.getElementById("output-img");
-            outputImg.src = fileURL;
-          }
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(selectedFile);
-    }
-  };
-  
-  // データURLをFileオブジェクトに変換する関数
-  function dataURLtoFile(dataURL, fileName) {
-    const arr = dataURL.split(",");
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], fileName, { type: mime });
-  }
-  
-  const uploader = async (file) => {
-    if (file) {
-      const uniqueFileName = `${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, "images/" + uniqueFileName);
-  
-      try {
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        setFileURL(downloadURL);
-        return downloadURL;
-      } catch (error) {
-        console.error("ファイルアップロードエラー:", error);
-        return null;
-      }
-    }
-  };
-  
 
   const createCircle = async (e) => {
     setLoading(true);
@@ -217,12 +158,13 @@ function Newsession({ user }) {
 
     let uploadedURL = null;
     if (file) {
-      uploadedURL = await uploader(file);
+      uploadedURL = await uploader(file, fileName);
       if (!uploadedURL) {
         alert("ファイルのアップロードに失敗しました");
         setLoading(false);
         return;
       }
+      setFileURL(uploadedURL);
     }
 
     let oneOffValue = "";
@@ -237,50 +179,80 @@ function Newsession({ user }) {
         oneStart <= oneEnd
       ) {
         oneOffValue = `${oneDate}  ${oneStart}～${oneEnd}`;
-        oneOffValue = oneOffValue.replace(/-/g, '/');
+        oneOffValue = oneOffValue.replace(/-/g, "/");
       } else {
         setLoading(false);
         alert("イベントの開催日時が正しく入力されていません");
         return;
       }
 
-      setOneDate("");
-      setOneStart("");
-      setOneEnd("");
+      setOneDate(null);
+      setOneStart(null);
+      setOneEnd(null);
     }
 
     // Firestoreに保存
     try {
-      await addDoc(collection(db, "circles"), {
-        fileURL: uploadedURL || fileURL,
-        name: event,
-        freq: freq,
-        freqInput: freqInput,
-        oneOff: oneOffValue,
-        type: eventType,
-        location: location ? location : "開催地未定",
-        fee: fee,
-        detail: detail,
-        events: eventDates,
-        members: members,
-        host: hosts,
-      });
+      try {
+        const currentTime = new Date().getTime();
+        // 保存するデータオブジェクト
+        const data = {
+          fileURL: uploadedURL || fileURL,
+          name: event,
+          freq: freq,
+          freqInput: freqInput,
+          oneOff: oneOffValue,
+          type: eventType,
+          location: location || "開催地未定",
+          oneOffURL: oneOffURL,
+          oneOffPass: oneOffPass,
+          oneOffURLDate: oneOffURLDate,
+          oneOffInpersonCapa: oneinCapa,
+          oneOffOnlineCapa: oneOnlineCapa,
+          oneOffInpersonMember: [],
+          oneOffOnlineMember: [],
+          fee: fee,
+          detail: detail,
+          events: eventDates,
+          members: members,
+          host: hosts,
+          update: currentTime
+        };
+      
+        // nullまたは空の文字列を持つプロパティを削除
+        Object.keys(data).forEach((key) => {
+          if (data[key] === null || data[key] === "") {
+            delete data[key];
+          }
+        });
+      
+        // Firestoreにデータを保存
+        await addDoc(collection(db, "circles"), data);
+      } catch (error) {
+        console.error("Error adding document: ", error);
+      }
+      
 
       // フォームのリセット
       setEvent("");
-      setFreq(null);
+      setFreq("");
       setFreqInput("");
       setEventType("");
-      setLocation("未定");
+      setLocation("開催地未定");
+      setOneOffURL("");
+      setOneinCapa("");
+      setoneOnCapa("");
       setURL("");
       setPass("");
       setDate("");
       setFee("");
       setDetail("");
       setFileURL("");
-      setFile(null);
+      setFile("");
       setEventDates([]);
       setMembers([]);
+      setType("");
+      setEventlocation("開催地未定");
       setHosts([user.uid]);
 
       // 画面遷移
@@ -308,15 +280,15 @@ function Newsession({ user }) {
           <RingLoader size={48} color="blue" />
         </div>
       ) : (
-        <Container className="border m-5 p-5 fluid">
-          <h1 className="text-center">新しいグループの作成</h1>
+        <Container className="border mt-0 p-5 fluid mx-auto">
+          <h1 className="text-center fs-2">新しいグループの作成</h1>
           <Form onSubmit={createCircle}>
             <Form.Group controlId="formFile" className="mb-3">
               <Form.Label>ヘッダー画像 ※4:3にトリミングされます。</Form.Label>
               <Form.Control
                 type="file"
                 accept=".jpg, .jpeg, .png"
-                onChange={handleFileChange}
+                onChange={(e) => handleFileChange(e)}
               />
             </Form.Group>
 
@@ -442,6 +414,60 @@ function Newsession({ user }) {
                 />
               </Form.Group>
             )}
+            {freq === "単発" &&
+              (eventType === "オンライン" ||
+                eventType === "対面+オンライン") && (
+                <div>
+                  <Form.Group className="mb-3" controlId="online">
+                    <Form.Label>オンラインURL</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="URLを入力して下さい"
+                      value={oneOffURL}
+                      onChange={(e) => setOneOffURL(e.target.value)}
+                    />
+                  </Form.Group>
+                  <Form.Group className="mb-3" controlId="pass">
+                    <Form.Label>オンラインURLのパスワード</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="パスワードを入力して下さい"
+                      value={oneOffPass}
+                      onChange={(e) => setOneOffPass(e.target.value)}
+                    />
+                  </Form.Group>
+                  <Form.Group className="mb-3" controlId="date">
+                    <Form.Label>オンラインURL、パスワード公開日時</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={oneOffURLDate}
+                      onChange={(e) =>
+                        setOneOffURLDate(e.target.value)
+                      }
+                    />
+                  </Form.Group>
+                </div>
+              )}
+              {freq ==="単発" && (eventType === "対面" || eventType==="対面+オンライン") && (
+                <Form.Group className="mb-3">
+                <Form.Label>対面参加定員</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={oneinCapa}
+                  onChange={(e) => setOneinCapa(e.target.value)}
+                />
+              </Form.Group>
+              )}
+              {freq ==="単発" && (eventType === "オンライン" || eventType==="対面+オンライン") && (
+                <Form.Group className="mb-3">
+                <Form.Label>オンライン参加定員</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={oneOnlineCapa}
+                  onChange={(e) => setoneOnCapa(e.target.value)}
+                />
+              </Form.Group>
+              )}
             <Form.Group className="mb-3 mt-3">
               <Form.Label>参加費</Form.Label>
               <Form.Control
@@ -578,13 +604,15 @@ function Newsession({ user }) {
                       <Form.Control
                         type="date"
                         value={date}
-                        onChange={(e) => setDate(e.target.value.replace(/-/g, '/'))}
+                        onChange={(e) =>
+                          setDate(e.target.value)
+                        }
                       />
                     </Form.Group>
                   </div>
                 )}
                 <Form.Group className="mb-3">
-                  <Form.Label>特記事項</Form.Label>
+                  <Form.Label>概要</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={5}

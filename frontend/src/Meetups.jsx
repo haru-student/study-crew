@@ -94,18 +94,19 @@ function Meetups({ user }) {
               key={circle.id}
               className="text-decoration-none"
             >
-              <Card className="event">
+              <Card className="group">
                 {circle.fileURL && (
                   <Card.Img
                     variant="top"
-                    src={`${circle.fileURL}?w=100&h=160&fit=crop`}
+                    src={`${circle.fileURL}?w=100&h=160&fit=crop`} 
+                    className="header"
                   />
                 )}
                 <Card.Body>
                   <Card.Title>{circle.name}</Card.Title>
                   <Card.Text>
-                    {circle.detail.length > 30
-                      ? `${circle.detail.substring(0, 30)}...`
+                    {circle.detail && circle.detail.length > 20
+                      ? `${circle.detail.substring(0, 20)}...`
                       : circle.detail}
                   </Card.Text>
                 </Card.Body>

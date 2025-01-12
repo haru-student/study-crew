@@ -2,18 +2,29 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Col, Container, Row, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import { getCircleDataById, updateCircleEvents, newMember } from "./dbControl";
+import {
+  getCircleDataById,
+  updateCircleEvents,
+  newMember,
+  removeMember,
+  joinEvent,
+  cancelEvent,
+} from "./dbControl";
+import { useNavigate } from "react-router-dom";
 
 function Detail({ user }) {
   const { id } = useParams();
   const [circle, setCircle] = useState(null);
 
+  const navigate = useNavigate();
+
   // 過去イベントを削除するロジック
   const filterExpiredEvents = (events) => {
     const currentDate = new Date();
-    return events.filter(
-      (event) => new Date(`${event.date}T${event.endTime}`) >= currentDate
-    );
+    return events.filter((event) => {
+      const endTime = event.endTime || "23:59"; // eventからendTimeを取得するように修正
+      return new Date(`${event.date}T${endTime}`) >= currentDate;
+    });
   };
 
   useEffect(() => {
@@ -44,17 +55,58 @@ function Detail({ user }) {
       <Row>
         <h1 className="fs-1 mb-2">{circle.name}</h1>
         <Col sm={12} md={8}>
-          <img src={circle.fileURL} alt="" className="img-fluid mb-4 image" />
+          <img src={circle.fileURL} alt="" className="img-fluid mb-4 image header" />
           {circle.detail && (
             <div className="mb-2">
               <h2 className="fs-3 mb-0">概要</h2>
               <p>{circle.detail}</p>
             </div>
           )}
+          {user &&
+            circle.members.includes(user.uid) &&
+            circle.freq === "単発" &&
+            (circle.type === "オンライン" ||
+              circle.type === "対面+オンライン") && (
+              <div>
+                <h>オンライン参加の方へ</h>
+                {circle.oneOffURL &&
+                (new Date(circle.oneOffURLDate) <= new Date() ||
+                  !circle.oneOffURLDate ||
+                  circle.host.includes(user.uid)) ? (
+                  <div>
+                    <div>
+                      <b>URL : </b>
+                      <a
+                        href={
+                          circle.oneOffURL.startsWith("http")
+                            ? circle.oneOffURL
+                            : `https://${circle.oneOffURL}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {circle.oneOffURL}
+                      </a>
+                    </div>
+                    {circle.oneOffPass && (
+                      <div>
+                        <div className="mt-2">
+                          <b>パスワード :</b> {circle.oneOffPass}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <p>オンライン参加のURLはまだ公開されていません</p>
+                  </div>
+                )}
+              </div>
+            )}
           {circle.events.length > 0 && (
             <div>
               <h2 className="fs-3">イベントスケジュール</h2>
-              <ul className="list-unstyled">
+              <ul className="list-unstyled event">
                 {circle.events.map((event, index) => (
                   <li key={index} className="border mb-3 p-2 fs-5">
                     <h3>
@@ -66,7 +118,7 @@ function Detail({ user }) {
                         : ""}
                     </h3>
                     <div>
-                      {circle.type === "対面" && (
+                      {event.type === "対面" && (
                         <div className="d-flex align-items-center">
                           <img
                             src="/geo-alt.svg"
@@ -76,7 +128,7 @@ function Detail({ user }) {
                           <p className="mb-0">{event.eventlocation}</p>
                         </div>
                       )}
-                      {circle.type === "対面+オンライン" && (
+                      {event.type === "対面+オンライン" && (
                         <div className="d-flex align-items-center">
                           <img
                             src="/geo-alt.svg"
@@ -88,7 +140,7 @@ function Detail({ user }) {
                           </p>
                         </div>
                       )}
-                      {circle.type === "オンライン" && (
+                      {event.type === "オンライン" && (
                         <div className="d-flex align-items-center">
                           <img
                             src="/geo-alt.svg"
@@ -100,8 +152,8 @@ function Detail({ user }) {
                       )}
                     </div>
                     <div className="d-flex align-items-center">
-                      {(circle.type === "対面" ||
-                        circle.type === "対面+オンライン") && (
+                      {(event.type === "対面" ||
+                        event.type === "対面+オンライン") && (
                         <div className="d-flex align-items-center">
                           <img src="/people.svg" alt="" className="me-2 icon" />
                           {event.inPersonCapacity ? (
@@ -119,8 +171,8 @@ function Detail({ user }) {
                       )}
                     </div>
                     <div className="d-flex align-items-center">
-                      {(circle.type === "対面+オンライン" ||
-                        circle.type === "オンライン") && (
+                      {(event.type === "対面+オンライン" ||
+                        event.type === "オンライン") && (
                         <div className="d-flex align-items-center">
                           <img src="/people.svg" alt="" className="me-2 icon" />
                           {event.onlineCapacity ? (
@@ -137,6 +189,118 @@ function Detail({ user }) {
                         </div>
                       )}
                     </div>
+                    {user &&
+                      circle.members.includes(user.uid) &&
+                      (event.type === "オンライン" ||
+                        event.type === "対面+オンライン") && (
+                        <div>
+                          {event.url &&
+                          (new Date(event.publishDate) <= new Date() ||
+                            !event.publishDate ||
+                            circle.host.includes(user.uid)) ? (
+                            <div>
+                              <div>
+                                <b>URL : </b>
+                                <a
+                                  href={
+                                    event.url.startsWith("http")
+                                      ? circle.url
+                                      : `https://${event.url}`
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {event.url}
+                                </a>
+                              </div>
+                              {event.password && (
+                                <div>
+                                  <b className="mt-2">パスワード : </b>
+                                  {event.password}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <p>オンライン参加のURLはまだ公開されていません</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    {event.notes && (
+                      <div>
+                          <b className="mt-2 fs-5">概要</b>
+                        <p>{event.notes}</p>
+                      </div>
+                    )}
+
+                    {circle.members.includes(user.uid) &&
+                      (event.onlineMember.includes(user.uid) ||
+                        event.inpersonMember.includes(user.uid)) && (
+                        <div className="text-center mt-3 mb-2">
+                          <Button
+                            variant="danger mt-3r"
+                            className="d-block mx-auto my-3"
+                            onClick={() =>
+                              cancelEvent(id, user.uid, event.identify)
+                            }
+                          >
+                            参加キャンセル
+                          </Button>
+                        </div>
+                      )}
+                    {circle.members.includes(user.uid) &&
+                      ((event.type === "オンライン" &&
+                        !event.onlineMember.includes(user.uid)) ||
+                        (event.type === "対面" &&
+                          !event.inpersonMember.includes(user.uid))) && (
+                        <div className="text-center mt-3 mb-2">
+                          <Button
+                            variant="primary mt-3r"
+                            className="d-block mx-auto my-3"
+                            onClick={() =>
+                              joinEvent(
+                                event.type,
+                                id,
+                                user.uid,
+                                event.identify
+                              )
+                            }
+                          >
+                            参加登録
+                          </Button>
+                        </div>
+                      )}
+                    {circle.members.includes(user.uid) &&
+                      event.type === "対面+オンライン" &&
+                      !event.inpersonMember.includes(user.uid) &&
+                      !event.onlineMember.includes(user.uid) && (
+                        <div className="d-flex justify-content-evenly mt-3 mb-2">
+                          <Button
+                            variant="primary mt-3r"
+                            className="d-block mx-auto my-3"
+                            onClick={() =>
+                              joinEvent("対面", id, user.uid, event.identify)
+                            }
+                          >
+                            対面参加
+                          </Button>
+                          <Button
+                            variant="primary mt-3r"
+                            className="d-block mx-auto my-3"
+                            onClick={() =>
+                              joinEvent(
+                                "オンライン",
+                                id,
+                                user.uid,
+                                event.identify
+                              )
+                            }
+                          >
+                            オンライン参加
+                          </Button>
+                        </div>
+                      )}
                   </li>
                 ))}
               </ul>
@@ -204,37 +368,157 @@ function Detail({ user }) {
               </div>
             </div>
           )}
+          {circle.freq === "複数回" && (
+            <div className="border-bottom mb-2">
+              <div className="d-flex align-items-center">
+                <img src="/person.svg" alt="" className="me-2" />
+                <p className="mb-0">
+                  グループメンバー({circle.members.length}人)
+                </p>
+              </div>
+            </div>
+          )}
+          {circle.freq === "単発" && circle.type === "対面" && (
+            <div className="border-bottom mb-2">
+              <div className="d-flex align-items-center">
+                <img src="/people.svg" alt="" className="me-2" />
+                {circle.oneOffInpersonCapa ? (
+                  <p className="mb-0">
+                    参加人数: {circle.oneOffInpersonMember.length}人(定員
+                    {circle.oneOffInpersonCapa}人)
+                  </p>
+                ) : (
+                  <p className="mb-0">
+                    参加人数: {circle.oneOffInpersonMember.length}人
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {circle.freq === "単発" && circle.type === "オンライン" && (
+            <div className="border-bottom mb-2">
+              <div className="d-flex align-items-center">
+                <img src="/people.svg" alt="" className="me-2" />
+                {circle.oneOffInpersonCapa ? (
+                  <p className="mb-0">
+                    参加人数: {circle.oneOffOnlineMember.length}人(定員
+                    {circle.oneOffOnlineCapa}人)
+                  </p>
+                ) : (
+                  <p className="mb-0">
+                    参加人数: {circle.oneOffOnlineMember.length}人
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {circle.freq === "単発" && circle.type === "対面+オンライン" && (
+            <div>
+              <div className="mb-2">
+                <div className="d-flex align-items-center">
+                  <img src="/people.svg" alt="" className="me-2" />
+                  {circle.oneOffInpersonCapa ? (
+                    <p className="mb-0">
+                      参加人数: {circle.oneOffInpersonMember.length}人(定員
+                      {circle.oneOffInpersonCapa}人)
+                    </p>
+                  ) : (
+                    <p className="mb-0">
+                      参加人数: {circle.oneOffInpersonMember.length}人
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="border-bottom mb-2">
+                <div className="d-flex align-items-center">
+                  <img src="/people.svg" alt="" className="me-2" />
+                  {circle.oneOffInpersonCapa ? (
+                    <p className="mb-0">
+                      参加人数: {circle.oneOffOnlineMember.length}人(定員
+                      {circle.oneOffOnlineCapa}人)
+                    </p>
+                  ) : (
+                    <p className="mb-0">
+                      参加人数: {circle.oneOffOnlineMember.length}人
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <Link to={`/chat/${id}`} className="text-decoration-none chat">
             <div className="d-flex align-items-center">
               <img src="/wechat.svg" alt="" className="me-2" />
               <p className="mb-0">チャット</p>
             </div>
           </Link>
-          {user && !circle.members.includes(user.uid) && (
-            <Button
-              variant="primary mt-3r"
-              className="d-block mx-auto my-3"
-              onClick={async () => {
-                try {
-                  await newMember(id, user.uid); // 非同期関数を呼び出す
-                  alert("グループへの参加が成功しました!");
-                } catch (error) {
-                  console.error("グループへの参加に失敗しました:", error);
-                  alert(
-                    "グループへの参加に失敗しました。もう一度お試しください。"
-                  );
-                }
-              }}
-            >
-              グループに参加する
-            </Button>
-          )}
+          {user &&
+            !circle.members.includes(user.uid) &&
+            circle.freq === "複数回" && (
+              <Button
+                variant="primary mt-3r"
+                className="d-block mx-auto my-3"
+                onClick={() => newMember(id, user.uid, "group")}
+              >
+                グループに参加する
+              </Button>
+            )}
+          {user &&
+            !circle.members.includes(user.uid) &&
+            circle.freq === "単発" &&
+            (circle.type === "対面" || circle.type === "オンライン") && (
+              <Button
+                variant="primary mt-3r"
+                className="d-block mx-auto my-3"
+                onClick={() => newMember(id, user.uid, circle.type)}
+              >
+                参加する
+              </Button>
+            )}
+          {user &&
+            !circle.members.includes(user.uid) &&
+            circle.freq === "単発" &&
+            circle.type === "対面+オンライン" && (
+              <div>
+                <Button
+                  variant="primary mt-3r"
+                  className="d-block mx-auto my-3"
+                  onClick={() => newMember(id, user.uid, "対面")}
+                >
+                  対面で参加する
+                </Button>
+                <Button
+                  variant="primary mt-3r"
+                  className="d-block mx-auto my-3"
+                  onClick={() => newMember(id, user.uid, "オンライン")}
+                >
+                  オンラインで参加する
+                </Button>
+              </div>
+            )}
 
-          {user && circle.members.includes(user.uid) && (
-            <Button variant="danger mt-3r" className="d-block mx-auto my-3">
-              グループを退会する
-            </Button>
-          )}
+          {user &&
+            circle.members.includes(user.uid) &&
+            circle.freq === "単発" && (
+              <Button
+                variant="danger mt-3r"
+                className="d-block mx-auto my-3"
+                onClick={() => removeMember(id, user.uid, navigate)}
+              >
+                参加を辞退する
+              </Button>
+            )}
+          {user &&
+            circle.members.includes(user.uid) &&
+            circle.freq === "複数回" && (
+              <Button
+                variant="danger mt-3r"
+                className="d-block mx-auto my-3"
+                onClick={() => removeMember(id, user.uid, navigate)}
+              >
+                グループを退会する
+              </Button>
+            )}
           <h2 className="fs-5 mt-3">活動の記録</h2>
           <Link to={`/blog/${id}`} className="text-decoration-none text-center">
             <p>Show more</p>

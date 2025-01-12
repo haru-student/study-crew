@@ -40,12 +40,12 @@
   height:auto;
 }
 
-.event {
+.group {
   transition: transform 0.3s ease, box-shadow 0.3s ease; /* アニメーションの設定 */
   width: 100%;
 }
 
-.event:hover {
+.group:hover {
   transform: scale(1.05); /* サイズを拡大 */
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* 影を強調 */
 }
@@ -57,4 +57,15 @@
 }
 .chat:hover {
   transform: scale(1.1);
+}
+
+.event p{
+  font-size: 20px;
+}
+
+.header {
+  width: 300px;       /* 3:4アスペクト比に合わせた幅 */
+  height: 225px;      /* 3:4アスペクト比に合わせた高さ */
+  object-fit: cover;  /* はみ出た部分を隠す */
+  object-position: center;
 }

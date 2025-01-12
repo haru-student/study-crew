@@ -17,6 +17,8 @@
     "react-bootstrap": "^2.10.7",
     "react-dom": "^18.3.1",
     "react-firebase-hooks": "^5.1.1",
+    "react-image-file-resizer": "^0.4.8",
+    "react-modal": "^3.16.3",
     "react-router-dom": "^7.0.2",
     "react-spinners": "^0.15.0"
   },

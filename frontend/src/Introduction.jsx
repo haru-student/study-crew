@@ -31,7 +31,7 @@ function Introduction() {
                         <p>チャット機能を通じて分野でのグループチャット、イベントごとのチャットを活用しよう！</p>
                     </Col>
                     <Col sm={12} md={4} className="features border-end pb-1 px-5">
-                        <h3>Vlog機能</h3>
+                        <h3>Blog機能</h3>
                         <img src="/notebook.svg" className="img-fluid py-5" alt="" />
                         <p>活動の記録を残し見直せるようにしたり、他の人に活動を知ってもらおう</p>
                     </Col>
