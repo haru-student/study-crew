@@ -6,8 +6,8 @@ import { db } from "./firebase";
 import { collection, addDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { RingLoader } from "react-spinners";
-import { uploader} from "./handleImage";
-import Resizer from 'react-image-file-resizer';
+import { uploader, resizeImage } from "./handleImage";
+import {addGroupList} from "./dbControl";
 
 function Newsession({ user }) {
   const navigate = useNavigate();
@@ -54,26 +54,19 @@ function Newsession({ user }) {
   const [loading, setLoading] = useState(false);
 
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];  // e.target.files[0]でファイルを取得
-    setFileName(file.name);
+  const handleFileChange = async (e) => { // async を追加
+    const file = e.target.files[0]; // e.target.files[0] でファイルを取得
     if (file) {
-  
-      Resizer.imageFileResizer(
-        file,
-        1800, // 最大幅
-        1200, // 最大高さ
-        'JPEG', // 出力フォーマット
-        90, // 圧縮品質（0〜100）
-        0, // 回転角度
-        async (resizedImage) => {
-          const blob = await fetch(resizedImage).then(r => r.blob());
-          setFile(blob); // リサイズ後の画像を保存
-        },
-        'base64' // Base64形式で取得
-      );
+      setFileName(file.name); // ファイル名を状態に設定
+      try {
+        const blob = await resizeImage(file); // 非同期処理を待つ
+        setFile(blob); // Blob を状態に設定
+      } catch (error) {
+        console.error('Error resizing image:', error); // エラー時のログ出力
+      }
     }
   };
+  
   
 
 
@@ -227,8 +220,10 @@ function Newsession({ user }) {
         });
       
         // Firestoreにデータを保存
-        await addDoc(collection(db, "circles"), data);
-      } catch (error) {
+        const docRef = await addDoc(collection(db, "circles"), data);
+        addGroupList(docRef.id, user.uid);
+      } 
+      catch (error) {
         console.error("Error adding document: ", error);
       }
       

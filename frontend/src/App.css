@@ -69,3 +69,67 @@
   object-fit: cover;  /* はみ出た部分を隠す */
   object-position: center;
 }
+
+.profile-icon {
+  width: 150px;
+  height: 150px;
+  object-fit: cover; /* 画像の比率を維持しつつ、枠内に収める */
+  object-position: center; /* 中央に配置 */
+}
+
+.profile-group {
+  width : 400px;
+  background-color: rgb(246, 246, 235);
+  max-width: 95%;
+}
+.profile-group b {
+  font-size: 20px;
+  color: black;
+}
+.profile-group p {
+  font-size: 15px;
+  color: black;
+}
+
+.profile-group img {
+  width: 120px;       /* 3:4アスペクト比に合わせた幅 */
+  height: 90px;      /* 3:4アスペクト比に合わせた高さ */
+  object-fit: cover;  /* はみ出た部分を隠す */
+  object-position: center;
+}
+
+.host-label{
+  background-color: white;
+  color: black;
+  font-size: 15px;
+  display: block;
+}
+
+.profile-title {
+  font-family: "Lobster", serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 30px;
+  position: relative;
+  padding: 0.25em 0;
+}
+.profile-title:after {
+  content: "";
+  display: block;
+  height: 4px;
+  background: -webkit-linear-gradient(to right, rgb(0, 0, 0), transparent);
+  background: linear-gradient(to right, rgb(0, 0, 0), transparent);
+}
+
+@media (max-width: 768px) {
+  .profile-title {
+    font-size: 20px; /* フォントサイズを小さくする */
+  }
+}
+
+
+.title {
+  font-family: "Pacifico", serif;
+  font-weight: 400;
+  font-style: normal;
+}

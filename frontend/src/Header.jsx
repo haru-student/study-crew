@@ -3,30 +3,20 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Link } from 'react-router-dom';
-import Button from 'react-bootstrap/Button';
-import { signIn, signOut } from './Login';
+import  Login  from './Login';
 
 function Header({ user }) {
   return (
-    
     <Navbar expand="lg" className="bg-body-tertiary mb-5">
       <Container>
-        <Navbar.Brand as={Link} to="/">Open Crew</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/" className='title'>Open Crew</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
             <Nav.Link as={Link} to="/">ホーム</Nav.Link>
             <Nav.Link as={Link} to={`/meetsup`}>イベントを探す</Nav.Link>
           </Nav>
-          {user ? (
-            <Button className="btn-danger" onClick={signOut}>
-              サインアウト
-            </Button>
-          ) : (
-            <Button onClick={signIn}>
-              サインイン
-            </Button>
-          )}
+          <Login />
         </Navbar.Collapse>
       </Container>
     </Navbar>
