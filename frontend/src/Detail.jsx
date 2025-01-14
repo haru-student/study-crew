@@ -11,10 +11,16 @@ import {
   cancelEvent,
 } from "./dbControl";
 import { useNavigate } from "react-router-dom";
+import AddEvent from "./AddEvent";
+import { toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+import { RingLoader } from "react-spinners";
 
 function Detail({ user }) {
   const { id } = useParams();
   const [circle, setCircle] = useState(null);
+  const [addEvent, setAddEvent] = useState(false);
+  const [key, setKey] = useState(false);
 
   const navigate = useNavigate();
 
@@ -27,35 +33,67 @@ function Detail({ user }) {
     });
   };
 
-  useEffect(() => {
-    const fetchCircleData = async () => {
-      const circleData = await getCircleDataById(id);
+  const fetchCircleData = async () => {
+    const circleData = await getCircleDataById(id);
 
-      if (circleData) {
-        const filteredEvents = filterExpiredEvents(circleData.events);
+    if (circleData) {
+      const filteredEvents = filterExpiredEvents(circleData.events);
 
-        // 期限切れのイベントがある場合にFirestoreを更新
-        if (filteredEvents.length !== circleData.events.length) {
-          await updateCircleEvents(id, filteredEvents);
-        }
-
-        setCircle({ ...circleData, events: filteredEvents });
+      // 期限切れのイベントがある場合にFirestoreを更新
+      if (filteredEvents.length !== circleData.events.length) {
+        await updateCircleEvents(id, filteredEvents);
       }
-    };
 
+      setCircle({ ...circleData, events: filteredEvents });
+    }
+  };
+  useEffect(() => {
     fetchCircleData();
   }, [id]);
-
-  if (!circle) {
-    return <div>Loading...</div>;
+  const handleRemoveMember = async () => {
+    await removeMember(id, user.uid, navigate);
+    fetchCircleData(); // removeMember後に再度データを取得
+  };
+  const handleNewMember = async(cId, uId, type) => {
+    await newMember(cId, uId, type);
+    fetchCircleData();
+  }
+  const handleCancelEvent = async (cId, uId, eventIdentify) => {
+    await cancelEvent(cId, uId, eventIdentify);
+    fetchCircleData();
+  }
+  const handleJoinEvent = async (type, cId, uId, eventIdentify) => {
+    await joinEvent(type, cId, uId, eventIdentify);
+    fetchCircleData();
   }
 
+  useEffect(() => {
+    if(!addEvent){
+      fetchCircleData()
+    }
+  }, [addEvent])
+
+  if (!circle) {
+    return <div className="d-flex justify-content-center mt-4">
+    <RingLoader size={48} color="blue" />
+  </div>;
+  }
   return (
-    <Container className="detail">
+    <Container className="detail" key={key}>
+      <AddEvent addEvent={addEvent} setAddEvent={setAddEvent} circle={circle} />
       <Row>
-        <h1 className="fs-1 mb-2">{circle.name}</h1>
+        <div className="d-flex align-items-start justify-content-between">
+          <h1 className="fs-1 mb-2">{circle.name}</h1>
+          {user && circle.host.includes(user.uid) && (
+            <Button className="rounded-pill mb-0">編集する</Button>
+          )}
+        </div>
         <Col sm={12} md={8}>
-          <img src={circle.fileURL} alt="" className="img-fluid mb-4 image header" />
+          <img
+            src={circle.fileURL}
+            alt=""
+            className="img-fluid mb-4 image"
+          />
           {circle.detail && (
             <div className="mb-2">
               <h2 className="fs-3 mb-0">概要</h2>
@@ -103,9 +141,23 @@ function Detail({ user }) {
                 )}
               </div>
             )}
-          {circle.events.length > 0 && (
+          {circle.freq === "複数回" && circle.events.length === 0 && (
             <div>
               <h2 className="fs-3">イベントスケジュール</h2>
+              <p>現在開催予定のイベントはありません</p>
+              {user && circle.host.includes(user.uid) && (
+                <Button
+                  variant="primary mt-3r"
+                  className=""
+                  onClick={() => setAddEvent(true)}
+                >
+                  イベントを追加する
+                </Button>
+              )}
+            </div>
+          )}
+          {circle.events && circle.events.length > 0 && (
+            <div>
               <ul className="list-unstyled event">
                 {circle.events.map((event, index) => (
                   <li key={index} className="border mb-3 p-2 fs-5">
@@ -229,12 +281,13 @@ function Detail({ user }) {
                       )}
                     {event.notes && (
                       <div>
-                          <b className="mt-2 fs-5">概要</b>
+                        <b className="mt-2 fs-5">概要</b>
                         <p>{event.notes}</p>
                       </div>
                     )}
 
-                    {circle.members.includes(user.uid) &&
+                    {user &&
+                      circle.members.includes(user.uid) &&
                       (event.onlineMember.includes(user.uid) ||
                         event.inpersonMember.includes(user.uid)) && (
                         <div className="text-center mt-3 mb-2">
@@ -242,14 +295,15 @@ function Detail({ user }) {
                             variant="danger mt-3r"
                             className="d-block mx-auto my-3"
                             onClick={() =>
-                              cancelEvent(id, user.uid, event.identify)
+                              handleCancelEvent(id, user.uid, event.identify)
                             }
                           >
                             参加キャンセル
                           </Button>
                         </div>
                       )}
-                    {circle.members.includes(user.uid) &&
+                    {user &&
+                      circle.members.includes(user.uid) &&
                       ((event.type === "オンライン" &&
                         !event.onlineMember.includes(user.uid)) ||
                         (event.type === "対面" &&
@@ -259,7 +313,7 @@ function Detail({ user }) {
                             variant="primary mt-3r"
                             className="d-block mx-auto my-3"
                             onClick={() =>
-                              joinEvent(
+                              handleJoinEvent(
                                 event.type,
                                 id,
                                 user.uid,
@@ -271,7 +325,8 @@ function Detail({ user }) {
                           </Button>
                         </div>
                       )}
-                    {circle.members.includes(user.uid) &&
+                    {user &&
+                      circle.members.includes(user.uid) &&
                       event.type === "対面+オンライン" &&
                       !event.inpersonMember.includes(user.uid) &&
                       !event.onlineMember.includes(user.uid) && (
@@ -280,7 +335,7 @@ function Detail({ user }) {
                             variant="primary mt-3r"
                             className="d-block mx-auto my-3"
                             onClick={() =>
-                              joinEvent("対面", id, user.uid, event.identify)
+                              handleJoinEvent("対面", id, user.uid, event.identify)
                             }
                           >
                             対面参加
@@ -289,7 +344,7 @@ function Detail({ user }) {
                             variant="primary mt-3r"
                             className="d-block mx-auto my-3"
                             onClick={() =>
-                              joinEvent(
+                              handleJoinEvent(
                                 "オンライン",
                                 id,
                                 user.uid,
@@ -304,6 +359,17 @@ function Detail({ user }) {
                   </li>
                 ))}
               </ul>
+              {user &&
+                circle.host.includes(user.uid) &&
+                circle.freq === "複数回" && (
+                  <Button
+                    variant="primary mt-3r"
+                    className="d-block mx-auto my-3"
+                    onClick={() => setAddEvent(true)}
+                  >
+                    イベントを追加する
+                  </Button>
+                )}
             </div>
           )}
         </Col>
@@ -458,7 +524,7 @@ function Detail({ user }) {
               <Button
                 variant="primary mt-3r"
                 className="d-block mx-auto my-3"
-                onClick={() => newMember(id, user.uid, "group")}
+                onClick={() => handleNewMember(id, user.uid, "group")}
               >
                 グループに参加する
               </Button>
@@ -470,7 +536,7 @@ function Detail({ user }) {
               <Button
                 variant="primary mt-3r"
                 className="d-block mx-auto my-3"
-                onClick={() => newMember(id, user.uid, circle.type)}
+                onClick={() => handleNewMember(id, user.uid, circle.type)}
               >
                 参加する
               </Button>
@@ -483,14 +549,14 @@ function Detail({ user }) {
                 <Button
                   variant="primary mt-3r"
                   className="d-block mx-auto my-3"
-                  onClick={() => newMember(id, user.uid, "対面")}
+                  onClick={() => handleNewMember(id, user.uid, "対面")}
                 >
                   対面で参加する
                 </Button>
                 <Button
                   variant="primary mt-3r"
                   className="d-block mx-auto my-3"
-                  onClick={() => newMember(id, user.uid, "オンライン")}
+                  onClick={() => handleNewMember(id, user.uid, "オンライン")}
                 >
                   オンラインで参加する
                 </Button>
@@ -503,7 +569,7 @@ function Detail({ user }) {
               <Button
                 variant="danger mt-3r"
                 className="d-block mx-auto my-3"
-                onClick={() => removeMember(id, user.uid, navigate)}
+                onClick={() => handleRemoveMember()}
               >
                 参加を辞退する
               </Button>
@@ -514,7 +580,7 @@ function Detail({ user }) {
               <Button
                 variant="danger mt-3r"
                 className="d-block mx-auto my-3"
-                onClick={() => removeMember(id, user.uid, navigate)}
+                onClick={() => handleRemoveMember()}
               >
                 グループを退会する
               </Button>

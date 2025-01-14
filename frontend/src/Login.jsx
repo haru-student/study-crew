@@ -4,6 +4,7 @@ import { auth, provider } from './firebase';
 import { useNavigate } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import { createAccount, checkIfNewUser } from './dbControl';
+import {toast} from "react-toastify";
 
 const Login = () => {
   const [isSignedIn, setIsSignedIn] = useState(false); // サインイン状態を管理
@@ -26,16 +27,16 @@ const Login = () => {
   
         if (isNewUser) {
           await createAccount(user.uid, user.displayName, user.photoURL, "");
-          console.log("新しいユーザーがサインアップしました");
+          toast("Open Crewにようこそ！");
           navigate('/editprofile', { state: { isNewUser: true } });
         } else {
-          console.log("既存ユーザーがサインインしました");
+          toast("おかえりなさい！");
           setIsSignedIn(true);
         }
       })
       .catch((error) => {
         console.error("サインインに失敗しました", error.code, error.message);
-        alert("サインインに失敗しました: " + error.message);
+        toast.error("サインインに失敗しました: " + error.message);
       });
   };
   
@@ -45,11 +46,11 @@ const Login = () => {
   const signOut = () => {
     firebaseSignOut(auth)
       .then(() => {
-        console.log("サインアウトしました");
+        toast.success("サインアウトしました");
         setIsSignedIn(false); // サインアウト状態を更新
       })
       .catch((error) => {
-        console.error("サインアウトに失敗しました", error.code, error.message); // 詳細なエラーメッセージを表示
+        toast.error("サインアウトに失敗しました", error.code, error.message); // 詳細なエラーメッセージを表示
       });
   };
 

@@ -27,13 +27,17 @@
   margin-left: 25px;
 }
 
-.image{
-  width: 500px;
-  max-width: 90%;
+.image {
+  width: 100%;
+  max-width: 500px;
   height: auto;
-  margin-left:auto;
-  margin-right:auto;
+  aspect-ratio: 4 / 3;  /* widthの3/4の比率を設定 */
+  object-fit: cover;
+  object-position: center;
+  margin-left: auto;
+  margin-right: auto;
 }
+
 
 .icon {
   width: 30px;
@@ -64,11 +68,32 @@
 }
 
 .header {
-  width: 300px;       /* 3:4アスペクト比に合わせた幅 */
-  height: 225px;      /* 3:4アスペクト比に合わせた高さ */
-  object-fit: cover;  /* はみ出た部分を隠す */
-  object-position: center;
+  width: 100%;           /* 親要素に対して幅を100% */
+  max-width: 300px;      /* 最大幅を300pxに設定 */
+  aspect-ratio: 4 / 3;   /* アスペクト比を3:4に設定 */
+  object-fit: cover;     /* はみ出た部分を隠す */
+  object-position: center; 
 }
+
+@media (min-width: 576px) {
+  .header {
+    max-width: 300px;    /* 幅を300pxに設定 */
+  }
+}
+
+@media (min-width: 768px) {
+  .header {
+    max-width: 280px;    /* 幅を280pxに設定 */
+  }
+}
+
+@media (min-width: 992px) {
+  .header {
+    max-width: 300px;    /* 幅を300pxに設定 */
+  }
+}
+
+
 
 .profile-icon {
   width: 150px;
@@ -132,4 +157,19 @@
   font-family: "Pacifico", serif;
   font-weight: 400;
   font-style: normal;
+}
+
+.modal-form {
+  width: 600px;
+  max-width: 100%;
+}
+
+/* ボタンの幅と高さを固定して円形にする */
+.close-btn {
+  width: 30px; /* 幅 */
+  height: 30px; /* 高さ */
+  font-size: 1.5rem; /* ×のサイズ調整 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

@@ -7,7 +7,9 @@ import {
   arrayUnion,
   arrayRemove,
   setDoc,
+  writeBatch,
 } from "firebase/firestore";
+import { toast } from "react-toastify";
 
 //グループデータの取得
 const getCircleDataById = async (id) => {
@@ -18,12 +20,10 @@ const getCircleDataById = async (id) => {
     if (circleSnapshot.exists()) {
       return { id: circleSnapshot.id, ...circleSnapshot.data() };
     } else {
-      console.warn(`No document found with ID: ${id}`);
       return null;
     }
   } catch (error) {
-    console.error(`Error fetching circle data for ID: ${id}`, error);
-    throw error; // Re-throw the error for higher-level handling
+    toast.Error("グループデータの取得に失敗しました");
   }
 };
 
@@ -31,6 +31,18 @@ const getCircleDataById = async (id) => {
 const updateCircleEvents = async (id, updatedEvents) => {
   const circleRef = doc(db, "circles", id);
   await updateDoc(circleRef, { events: updatedEvents });
+};
+
+const registerEvent = async (id, newEvent) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    await updateDoc(circleRef, {
+      events: arrayUnion(newEvent),
+    });
+  } catch (error) {
+    console.error(error);
+    toast.error("イベントの追加に失敗しました。もう一度お試しください。");
+  }
 };
 
 //グループ参加
@@ -43,12 +55,12 @@ const newMember = async (id, userId, type) => {
       await updateDoc(circleRef, {
         members: arrayUnion(userId),
       });
-      alert("グループへの参加が成功しました!");
+      console.log("toast!");
+      toast.success("グループへの参加が成功しました!");
       addGroupList(id, userId);
-      window.location.reload();
     } catch (error) {
       console.error(error);
-      alert("グループへの参加に失敗しました。もう一度お試しください。");
+      toast.warning("グループへの参加に失敗しました。もう一度お試しください。");
     }
   } else if (
     type === "対面" &&
@@ -60,12 +72,11 @@ const newMember = async (id, userId, type) => {
         members: arrayUnion(userId),
         oneOffInpersonMember: arrayUnion(userId),
       });
-      alert("グループへの参加が成功しました!");
+      toast.success("グループへの参加が成功しました!");
       addGroupList(id, userId);
-      window.location.reload();
     } catch (error) {
       console.error(error);
-      alert("グループへの参加に失敗しました。もう一度お試しください。");
+      toast.warning("グループへの参加に失敗しました。もう一度お試しください。");
     }
   } else if (
     type === "オンライン" &&
@@ -77,15 +88,14 @@ const newMember = async (id, userId, type) => {
         members: arrayUnion(userId),
         oneOffOnlineMember: arrayUnion(userId),
       });
-      alert("グループへの参加が成功しました!");
+      toast.success("グループへの参加が成功しました!");
       addGroupList(id, userId);
-      window.location.reload();
     } catch (error) {
       console.error(error);
-      alert("グループへの参加に失敗しました。もう一度お試しください。");
+      toast.warning("グループへの参加に失敗しました。もう一度お試しください。");
     }
   } else {
-    alert("グループへの参加が失敗しました。");
+    toast.warning("グループへの参加が失敗しました。");
   }
 };
 
@@ -93,6 +103,19 @@ const newMember = async (id, userId, type) => {
 const removeMember = async (id, userId, navigate) => {
   const circleRef = doc(db, "circles", id);
   try {
+    // サークル情報を取得
+    const circleSnap = await getDoc(circleRef);
+    const circle = circleSnap.data();
+
+    if (!circle) {
+      console.warn("Circle not found");
+      return;
+    }
+
+    // 削除前にメンバー情報を取得して保持
+    const currentMembers = [...circle.members];
+
+    // メンバーリストを更新（userIdを削除）
     await updateDoc(circleRef, {
       members: arrayRemove(userId),
       host: arrayRemove(userId),
@@ -100,43 +123,73 @@ const removeMember = async (id, userId, navigate) => {
       oneOffOnlineMember: arrayRemove(userId),
     });
 
-    // イベントのメンバーを削除
-    const circleSnap = await getDoc(circleRef);
-    const circle = circleSnap.data();
-
     // 各イベントに対して処理を行う
     const updatedEvents = circle.events.map((event) => {
-      let updatedEvent = { ...event };
-
-      // inpersonMember から userId を削除
-      updatedEvent.inpersonMember = updatedEvent.inpersonMember.filter(
-        (member) => member !== userId
-      );
-
-      // onlineMember から userId を削除
-      updatedEvent.onlineMember = updatedEvent.onlineMember.filter(
-        (member) => member !== userId
-      );
-      return updatedEvent;
+      return {
+        ...event,
+        inpersonMember: event.inpersonMember.filter(
+          (member) => member !== userId
+        ),
+        onlineMember: event.onlineMember.filter((member) => member !== userId),
+      };
     });
 
     // 更新されたイベント情報を Firestore に保存
     await updateDoc(circleRef, { events: updatedEvents });
 
     // ホストがいない場合はグループを削除
-    if (circle.host.length === 0) {
-      await deleteDoc(circleRef);
-      removeGroupList(id, userId);
-      alert("管理者が不在となったため、このグループは削除されます。");
+    if (circle.host.length === 1 && circle.host.includes(userId)) {
+      await deleteCircle(id, currentMembers); // 削除前のメンバーリストを渡す
+      toast.warning("管理者が不在となったため、このグループは削除されます。");
       navigate("/meetsup"); // ホームページや適切なルートにリダイレクト
     } else {
-      alert("退会しました。");
+      toast.success("グループを退会しました");
       removeGroupList(id, userId);
-      window.location.reload();
     }
   } catch (error) {
-    console.error(error);
-    alert("グループ退会に失敗しました。もう一度お試しください。");
+    console.error("Error in removeMember:", error);
+    toast.error("グループ退会に失敗しました。もう一度お試しください。");
+  }
+};
+
+//グループの削除
+const deleteCircle = async (id, members) => {
+  try {
+    const circleRef = doc(db, "circles", id);
+
+    // Firestoreバッチ処理を作成
+    const batch = writeBatch(db);
+
+    // メンバーのgroupsリストを更新
+    for (const memberId of members) {
+      const userRef = doc(db, "users", memberId);
+      const userSnapshot = await getDoc(userRef);
+
+      if (userSnapshot.exists()) {
+        const userData = userSnapshot.data();
+        const updatedGroups = (userData.groups || []).filter(
+          (groupId) => groupId !== id
+        );
+
+        console.log(`Updating groups for user: ${memberId}`, updatedGroups);
+
+        // groupsフィールドを更新または作成
+        batch.set(
+          userRef,
+          { groups: updatedGroups },
+          { merge: true } // マージオプションを有効化
+        );
+      } else {
+        console.warn(`User with ID ${memberId} does not exist.`);
+      }
+    }
+    batch.delete(circleRef);
+
+    // バッチ処理をコミット
+    await batch.commit();
+    console.log(`Batch commit successful for circle ID: ${id}`);
+  } catch (error) {
+    console.error("Error deleting circle or updating members:", error);
   }
 };
 
@@ -149,7 +202,7 @@ const joinEvent = async (type, id, userId, identify) => {
   const index = circle.events.findIndex((event) => event.identify === identify);
 
   if (index === -1) {
-    alert("対象のイベントが見つかりません");
+    toast.warning("対象のイベントが見つかりません");
     return;
   }
 
@@ -168,14 +221,13 @@ const joinEvent = async (type, id, userId, identify) => {
         };
 
         await updateDoc(circleRef, { events: updatedEvents });
-        alert("対面の参加登録に成功しました");
-        window.location.reload();
+        toast.success("対面の参加登録に成功しました");
       } catch (error) {
         console.error(error);
-        alert("参加登録に失敗しました。");
+        toast.error("参加登録に失敗しました。");
       }
     } else {
-      alert("人数制限のため参加できませんでした。");
+      toast.error("人数制限のため参加できませんでした。");
     }
   } else if (type === "オンライン") {
     if (
@@ -190,17 +242,16 @@ const joinEvent = async (type, id, userId, identify) => {
         };
 
         await updateDoc(circleRef, { events: updatedEvents });
-        alert("オンラインの参加登録に成功しました");
-        window.location.reload();
+        toast.success("オンラインの参加登録に成功しました");
       } catch (error) {
         console.error(error);
-        alert("参加登録に失敗しました");
+        toast.error("参加登録に失敗しました");
       }
     } else {
-      alert("人数制限のため参加できませんでした。");
+      toast.error("人数制限のため参加できませんでした。");
     }
   } else {
-    alert("無効な操作です");
+    toast.error("無効な操作です");
     return;
   }
 };
@@ -214,7 +265,7 @@ const cancelEvent = async (id, userId, identify) => {
   const index = circle.events.findIndex((event) => event.identify === identify);
 
   if (index === -1) {
-    alert("対象のイベントが見つかりません");
+    toast.error("対象のイベントが見つかりませんでした");
     return;
   }
 
@@ -232,11 +283,10 @@ const cancelEvent = async (id, userId, identify) => {
 
       await updateDoc(circleRef, { events: updatedEvents });
       removeGroupList(id, userId);
-      alert("イベントをキャンセルしました");
-      window.location.reload();
+      toast.success("イベントをキャンセルしました");
     } catch (error) {
       console.error(error);
-      alert("キャンセルに失敗しました。");
+      toast.error("キャンセルに失敗しました。");
     }
   } else if (eventToUpdate.onlineMember.includes(userId)) {
     try {
@@ -250,11 +300,10 @@ const cancelEvent = async (id, userId, identify) => {
 
       await updateDoc(circleRef, { events: updatedEvents });
       removeGroupList(id, userId);
-      alert("イベントをキャンセルしました");
-      window.location.reload();
+      toast.success("イベントをキャンセルしました");
     } catch (error) {
       console.error(error);
-      alert("キャンセルに失敗しました。");
+      toast.error("キャンセルに失敗しました。");
     }
   }
 };
@@ -291,7 +340,7 @@ const deleteFile = async (fileURL) => {
       return;
     })
     .catch((error) => {
-      console.log(error);
+      toast.error("エラーが発生しました");
     });
 };
 
@@ -305,11 +354,10 @@ const createAccount = async (uid, name, icon, introduction) => {
       name: name || "ゲストユーザー",
       icon: icon || "",
       introduction: introduction || "",
-      groups: []
+      groups: [],
     });
-    console.log("ユーザー情報が保存されました");
   } catch (error) {
-    console.error("ユーザー情報の保存に失敗しました:", error);
+    toast.error("エラーが発生しました");
     throw new Error("ユーザー情報の保存に失敗しました");
   }
 };
@@ -320,7 +368,7 @@ const updateUserInfo = async (userId, icon, name, introduction) => {
   await updateDoc(userRef, {
     icon: icon,
     name: name,
-    introduction: introduction
+    introduction: introduction,
   });
 };
 
@@ -334,24 +382,22 @@ const addGroupList = async (id, userId) => {
   const userRef = doc(db, "users", userId);
   try {
     await updateDoc(userRef, {
-      groups: arrayUnion(id)
+      groups: arrayUnion(id),
     });
+  } catch {
+    toast.error("エラーが発生しました");
   }
-  catch {
-    console.log("failed to add");
-  }
-}
+};
 const removeGroupList = async (id, userId) => {
   const userRef = doc(db, "users", userId);
   try {
     await updateDoc(userRef, {
-      groups: arrayRemove(id)
+      groups: arrayRemove(id),
     });
+  } catch {
+    toast.error("エラーが発生しました");
   }
-  catch {
-    console.log("failed to add");
-  }
-}
+};
 
 export {
   getCircleDataById,
@@ -365,5 +411,6 @@ export {
   createAccount,
   updateUserInfo,
   checkIfNewUser,
-  addGroupList
+  addGroupList,
+  registerEvent,
 };

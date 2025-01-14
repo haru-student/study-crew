@@ -64,14 +64,13 @@ function Meetups({ user }) {
       const storage = getStorage();
       const fileRef = ref(storage, fileURL);
       await deleteObject(fileRef);
-      console.log("ファイル削除成功:", fileURL);
     } catch (error) {
       console.error("ファイル削除エラー:", error);
     }
   };
 
   if (!circles.length) {
-    return <Nosession />;
+    return <Nosession user={user}/>;
   }
 
   return (
@@ -87,7 +86,7 @@ function Meetups({ user }) {
             sm={6}
             md={4}
             lg={3}
-            className="mb-5 d-flex"
+            className="mb-5 d-flex justify-content-center"
           >
             <Link
               to={`/detail/${circle.id}`}

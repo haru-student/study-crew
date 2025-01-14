@@ -12,6 +12,8 @@ import Newsession from './Newsession';
 import EditProfile from './EditProfile';
 import Detail from './Detail';
 import Blog from './Blog';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [user] = useAuthState(auth);
@@ -21,11 +23,12 @@ function App() {
       <div className="d-flex flex-column vh-100">
         <Header user={user} />
         <main className="flex-grow-1">
+        <ToastContainer />
           <Routes>
             <Route path="/" element={<Home user={user} />} />
             <Route path="/meetsup" element={<Meetups user={user} />} /> 
             <Route path="/chatgroup" element={<Chat user={user} />} /> 
-            <Route path="/createsession" element={<Newsession user={user} />} /> 
+            <Route path="/createsession" element={<Newsession user={user}/>} /> 
             <Route path="/editprofile" element={<EditProfile user={user}/>} />
             <Route path={`/detail/:id`} element={<Detail user={user}/>} />
             <Route path={`/chat/:id`} element={<Chat user={user}/>} />

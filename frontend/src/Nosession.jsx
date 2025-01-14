@@ -13,9 +13,9 @@ function Nosession({user}) {
     <Container className='text-center '>
         <p>現在募集中のグループはありません。グループを作成してみませんか。</p>
         {user ? (
-            <Login />
-          ) : (
             <Button onClick={goToNew}>グループを作成する。</Button>
+          ) : (
+            <Login />
           )}
     </Container>
   )

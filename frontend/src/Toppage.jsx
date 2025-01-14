@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { getProfile } from "./dbControl";
 import { RingLoader } from "react-spinners";
 import { getCircleDataById } from "./dbControl";
+import {toast} from "react-toastify";
 
 function Toppage({ user }) {
   const [profile, setProfile] = useState(null);
@@ -15,18 +16,19 @@ function Toppage({ user }) {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      setLoading(true);
       try {
         if (user.uid) {
           const userProfile = await getProfile(user.uid);
           if (userProfile) {
             setProfile(userProfile);
           } else {
-            console.warn("プロフィールデータが見つかりませんでした");
             setProfile(null);
           }
+          setLoading(false);
         }
       } catch (error) {
-        console.error("プロフィールデータの取得に失敗しました:", error);
+        setLoading(false);
       }
     };
 
@@ -39,7 +41,7 @@ function Toppage({ user }) {
         .then(setCircles)
         .catch((error) => console.error("Failed to fetch circle data:", error));
     } else {
-      console.warn("profile.groups is empty or not a valid array");
+      console.error();
     }
   }, [profile]);
 

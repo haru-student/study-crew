@@ -5,6 +5,7 @@ import { RingLoader } from "react-spinners";
 import { resizeImage, uploader } from "./handleImage";
 import { getProfile, updateUserInfo } from "./dbControl";
 import Introduction from "./Introduction";
+import { toast } from "react-toastify";
 
 function EditProfile({ user }) {
   const [icon, setIcon] = useState(null);
@@ -38,7 +39,7 @@ function EditProfile({ user }) {
         const resizedBlob = await resizeImage(file); // 画像リサイズを非同期で実行
         setIcon(resizedBlob); // リサイズした画像を状態に設定
       } catch (error) {
-        console.error('Error resizing image:', error); // エラー時のログ出力
+        toast.error("エラーが発生しました");// エラー時のログ出力
       }
     }
   };
@@ -50,7 +51,7 @@ function EditProfile({ user }) {
     let uploadedURL = icon ? await uploader(icon, iconName) : iconURL;
     
     if (!uploadedURL) {
-      alert("ファイルのアップロードに失敗しました");
+      toast.error("ファイルのアップロードに失敗しました");
       setLoading(false);
       return;
     }
@@ -59,8 +60,9 @@ function EditProfile({ user }) {
     try {
       updateUserInfo(user.uid, uploadedURL, name, introduction);
       setLoading(false);
+      toast.success("プロフィールを設定しました！");
     } catch (error) {
-      console.log("アカウント情報の登録または更新に失敗しました。", error);
+      toast.error("アカウント情報の登録または更新に失敗しました。");
       setLoading(false);
       return;
     }

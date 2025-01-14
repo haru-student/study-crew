@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { RingLoader } from "react-spinners";
 import { uploader, resizeImage } from "./handleImage";
 import {addGroupList} from "./dbControl";
+import { toast } from "react-toastify";
 
 function Newsession({ user }) {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ function Newsession({ user }) {
         const blob = await resizeImage(file); // 非同期処理を待つ
         setFile(blob); // Blob を状態に設定
       } catch (error) {
-        console.error('Error resizing image:', error); // エラー時のログ出力
+        toast.error("エラーが発生しました。もう一度お試しください"); // エラー時のログ出力
       }
     }
   };
@@ -77,17 +78,16 @@ function Newsession({ user }) {
 
     // 開催日が現在日付より前の場合は追加できない
     if (eventDateOnly < currentDate) {
-      alert("現在日付より前の開催日は設定できません");
+      toast.error("現在時刻より前に設定できません")
       return;
     }
     if (!eventlocation && (type === "対面" || type === "対面+オンライン")) {
-      alert("開催場所を入力して下さい");
+      toast.error("開催場所を入力して下さい");
       return;
     }
 
     if (eventDate) {
       const currentTime = new Date().getTime();
-      setEventDate(eventDate);
       const newEvent = {
         date: eventDate,
         type: type,
@@ -136,7 +136,8 @@ function Newsession({ user }) {
       setDate("");
       setNotes("");
     } else {
-      alert("開催日時を入力してください");
+      toast.error("開催日時を入力してください");
+      return;
     }
   };
 
@@ -151,13 +152,19 @@ function Newsession({ user }) {
 
     let uploadedURL = null;
     if (file) {
-      uploadedURL = await uploader(file, fileName);
-      if (!uploadedURL) {
-        alert("ファイルのアップロードに失敗しました");
+      try {
+        uploadedURL = await uploader(file, fileName);
+        if (!uploadedURL) {
+          toast.error("ファイルのアップロードに失敗しました。もう一度お試しください");
+          setLoading(false);
+          return;
+        }
+        setFileURL(uploadedURL);
+      } catch (uploadError) {
         setLoading(false);
+        toast.error("ファイルアップロード中にエラーが発生しました");
         return;
       }
-      setFileURL(uploadedURL);
     }
 
     let oneOffValue = "";
@@ -171,11 +178,10 @@ function Newsession({ user }) {
         DateTime >= current &&
         oneStart <= oneEnd
       ) {
-        oneOffValue = `${oneDate}  ${oneStart}～${oneEnd}`;
-        oneOffValue = oneOffValue.replace(/-/g, "/");
+        oneOffValue = `${oneDate}  ${oneStart}～${oneEnd}`.replace(/-/g, "/");
       } else {
         setLoading(false);
-        alert("イベントの開催日時が正しく入力されていません");
+        toast.error("イベントの開催日時が正しく入力されていません");
         return;
       }
 
@@ -184,81 +190,77 @@ function Newsession({ user }) {
       setOneEnd(null);
     }
 
-    // Firestoreに保存
     try {
+      const currentTime = new Date().getTime();
+      const data = {
+        fileURL: uploadedURL || fileURL,
+        name: event,
+        freq: freq,
+        freqInput: freqInput,
+        oneOff: oneOffValue,
+        type: eventType,
+        location: location || "開催地未定",
+        oneOffURL: oneOffURL,
+        oneOffPass: oneOffPass,
+        oneOffURLDate: oneOffURLDate,
+        oneOffInpersonCapa: oneinCapa,
+        oneOffOnlineCapa: oneOnlineCapa,
+        oneOffInpersonMember: [],
+        oneOffOnlineMember: [],
+        fee: fee,
+        detail: detail,
+        events: eventDates,
+        members: members,
+        host: hosts,
+        update: currentTime
+      };
+
+      Object.keys(data).forEach((key) => {
+        if (data[key] === null || data[key] === "") {
+          delete data[key];
+        }
+      });
+
+      const docRef = await addDoc(collection(db, "circles"), data);
+
       try {
-        const currentTime = new Date().getTime();
-        // 保存するデータオブジェクト
-        const data = {
-          fileURL: uploadedURL || fileURL,
-          name: event,
-          freq: freq,
-          freqInput: freqInput,
-          oneOff: oneOffValue,
-          type: eventType,
-          location: location || "開催地未定",
-          oneOffURL: oneOffURL,
-          oneOffPass: oneOffPass,
-          oneOffURLDate: oneOffURLDate,
-          oneOffInpersonCapa: oneinCapa,
-          oneOffOnlineCapa: oneOnlineCapa,
-          oneOffInpersonMember: [],
-          oneOffOnlineMember: [],
-          fee: fee,
-          detail: detail,
-          events: eventDates,
-          members: members,
-          host: hosts,
-          update: currentTime
-        };
-      
-        // nullまたは空の文字列を持つプロパティを削除
-        Object.keys(data).forEach((key) => {
-          if (data[key] === null || data[key] === "") {
-            delete data[key];
-          }
-        });
-      
-        // Firestoreにデータを保存
-        const docRef = await addDoc(collection(db, "circles"), data);
-        addGroupList(docRef.id, user.uid);
-      } 
-      catch (error) {
-        console.error("Error adding document: ", error);
+        await addGroupList(docRef.id, user.uid);
+        toast.success("グループの作成に成功しました！");
+      } catch (groupListError) {
+        toast.error("エラーが発生しました。時間をおいてもう一度お試しください")
       }
-      
 
-      // フォームのリセット
-      setEvent("");
-      setFreq("");
-      setFreqInput("");
-      setEventType("");
-      setLocation("開催地未定");
-      setOneOffURL("");
-      setOneinCapa("");
-      setoneOnCapa("");
-      setURL("");
-      setPass("");
-      setDate("");
-      setFee("");
-      setDetail("");
-      setFileURL("");
-      setFile("");
-      setEventDates([]);
-      setMembers([]);
-      setType("");
-      setEventlocation("開催地未定");
-      setHosts([user.uid]);
-
-      // 画面遷移
+    } catch (docError) {
       setLoading(false);
-      navigate("/meetsup");
-    } catch (error) {
-      console.error("サークル作成エラー:", error);
-      setLoading(false);
-      alert("サークル作成に失敗しました");
+      toast.error("サークル作成に失敗しました。");
     }
-  };
+
+    // フォームのリセット
+    setEvent("");
+    setFreq("");
+    setFreqInput("");
+    setEventType("");
+    setLocation("開催地未定");
+    setOneOffURL("");
+    setOneinCapa("");
+    setoneOnCapa("");
+    setURL("");
+    setPass("");
+    setDate("");
+    setFee("");
+    setDetail("");
+    setFileURL("");
+    setFile("");
+    setEventDates([]);
+    setMembers([]);
+    setType("");
+    setEventlocation("開催地未定");
+    setHosts([user.uid]);
+
+    setLoading(false);
+    navigate("/meetsup");
+};
+
 
   useEffect(() => {
     setType(eventType);

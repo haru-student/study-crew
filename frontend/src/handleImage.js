@@ -39,7 +39,6 @@ const uploader = async (file, fileName) => {
       const downloadURL = await getDownloadURL(snapshot.ref);
       return downloadURL;
     } catch (error) {
-      console.error("ファイルアップロードエラー:", error);
       return null;
     }
   }
