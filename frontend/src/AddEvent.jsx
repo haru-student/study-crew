@@ -7,7 +7,6 @@ import { toast } from "react-toastify";
 Modal.setAppElement("#root");
 
 function AddEvent({ addEvent, setAddEvent, circle }) {
-  const navigate = useNavigate();
 
   const [date, setDate] = useState("");
   const [start, setStart] = useState("");
@@ -21,7 +20,8 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
   const [pubDate, setPubDate] = useState("");
   const [notes, setNotes] = useState("");
 
-  const handleAddEvent = async () => {
+  const handleAddEvent = async (e) => {
+    e.preventDefault();
     const eventDateOnly = new Date(date);
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
@@ -93,19 +93,29 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
 
   // useEffectを使ってブラウザの戻るボタンをリッスン
   useEffect(() => {
-    const handlePopState = (event) => {
+    const handlePopState = () => {
       // モーダルが開いている場合に閉じる
       if (addEvent) {
         setAddEvent(false);
       }
     };
 
+    if (addEvent) {
+      // モーダルを開く際に履歴を追加
+      window.history.pushState({ modalOpen: true }, "");
+    }
+
     // popstateイベントリスナーを追加
     window.addEventListener("popstate", handlePopState);
 
-    // クリーンアップ（コンポーネントのアンマウント時）
     return () => {
+      // クリーンアップ
       window.removeEventListener("popstate", handlePopState);
+
+      // モーダルが開いている場合、履歴を元に戻す
+      if (addEvent) {
+        window.history.back();
+      }
     };
   }, [addEvent, setAddEvent]);
 
@@ -133,7 +143,8 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
         ×
       </Button>
       <h1 className="text-center fs-2">イベントの作成</h1>
-      <Form>
+      <p className="text-center">日程と開催形式、定員は後から変更できません</p>
+      <Form onSubmit={handleAddEvent}>
         <Form.Group className="mb-3">
           <Form.Label>開催日</Form.Label>
           <Form.Control
@@ -261,10 +272,13 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
             onChange={(e) => setNotes(e.target.value)}
           />
         </Form.Group>
+        <Button
+          className="d-block mx-auto mt-2"
+          type="submit"
+        >
+          登録
+        </Button>
       </Form>
-      <Button className="d-block mx-auto mt-2" onClick={() => handleAddEvent()}>
-        登録
-      </Button>
     </Modal>
   );
 }

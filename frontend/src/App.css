@@ -173,3 +173,19 @@
   justify-content: center;
   align-items: center;
 }
+
+.confirm {
+  width: 400px;
+  height: auto;
+  max-width: 80%; 
+}
+
+.deleteAccount{
+      width: fit-content;
+      height: fit-content;
+      cursor: default;
+}
+.deleteAccount:hover{
+  cursor: 'none';
+  text-decoration: underline;
+}

@@ -4,23 +4,30 @@ import { Col, Container, Row, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import {
   getCircleDataById,
-  updateCircleEvents,
   newMember,
   removeMember,
   joinEvent,
   cancelEvent,
+  removeEvent,
+  expiredEvent
 } from "./dbControl";
 import { useNavigate } from "react-router-dom";
 import AddEvent from "./AddEvent";
-import { toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from "react-spinners";
+import EditGroup from "./EditGroup";
+import ConfirmDeleteGroup from "./ConfirmDeleteGroup";
+import EditEvent from "./EditEvent";
 
 function Detail({ user }) {
   const { id } = useParams();
   const [circle, setCircle] = useState(null);
   const [addEvent, setAddEvent] = useState(false);
-  const [key, setKey] = useState(false);
+  const [editGroup, setEditGroup] = useState(false);
+  const [editEvent, setEditEvent] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [target, setTarget] = useState("");
 
   const navigate = useNavigate();
 
@@ -41,7 +48,7 @@ function Detail({ user }) {
 
       // 期限切れのイベントがある場合にFirestoreを更新
       if (filteredEvents.length !== circleData.events.length) {
-        await updateCircleEvents(id, filteredEvents);
+        await expiredEvent(id, filteredEvents);
       }
 
       setCircle({ ...circleData, events: filteredEvents });
@@ -51,7 +58,12 @@ function Detail({ user }) {
     fetchCircleData();
   }, [id]);
   const handleRemoveMember = async () => {
-    await removeMember(id, user.uid, navigate);
+    if (circle.host.includes(user.uid) && circle.host.length===1){
+      setConfirm(true);
+    }
+    else{
+      await removeMember(id, user.uid, navigate);
+    }
     fetchCircleData(); // removeMember後に再度データを取得
   };
   const handleNewMember = async(cId, uId, type) => {
@@ -66,26 +78,42 @@ function Detail({ user }) {
     await joinEvent(type, cId, uId, eventIdentify);
     fetchCircleData();
   }
+  const handleRemoveEvent = async (id, event) => {
+    await removeEvent(id, event);
+    fetchCircleData();
+  }
+  const handleUpdateEvent = async(event) => {
+    setTarget(event);
+  }
+  useEffect(() => {
+    if(target){
+      setEditEvent(true);
+    }
+  }, [target])
 
   useEffect(() => {
-    if(!addEvent){
-      fetchCircleData()
+    if (!addEvent && !editGroup && !editEvent) {
+      fetchCircleData();
     }
-  }, [addEvent])
+  }, [addEvent, editGroup, editEvent]);
+  
 
-  if (!circle) {
+  if (!circle || loading) {
     return <div className="d-flex justify-content-center mt-4">
     <RingLoader size={48} color="blue" />
   </div>;
   }
   return (
-    <Container className="detail" key={key}>
+    <Container className="detail" key={circle.id}>
       <AddEvent addEvent={addEvent} setAddEvent={setAddEvent} circle={circle} />
+      <EditGroup editGroup={editGroup} setEditGroup={setEditGroup} circle={circle} setLoading={setLoading}/>
+      <ConfirmDeleteGroup confirm={confirm} setConfirm={setConfirm} circle={circle} user={user} setLoading={setLoading}/>
+      <EditEvent editEvent={editEvent} setEditEvent={setEditEvent} circle={circle} event={target}/>
       <Row>
         <div className="d-flex align-items-start justify-content-between">
           <h1 className="fs-1 mb-2">{circle.name}</h1>
           {user && circle.host.includes(user.uid) && (
-            <Button className="rounded-pill mb-0">編集する</Button>
+            <Button className="rounded-pill mb-0" onClick={() => setEditGroup(true)}>編集する</Button>
           )}
         </div>
         <Col sm={12} md={8}>
@@ -160,7 +188,13 @@ function Detail({ user }) {
             <div>
               <ul className="list-unstyled event">
                 {circle.events.map((event, index) => (
-                  <li key={index} className="border mb-3 p-2 fs-5">
+                  <li key={index} className="border mb-3 p-2 fs-5 position-relative">
+                    {user && circle.host.includes(user.uid) && (
+                      <div>
+                      <img src="/trash.svg" alt="" className="position-absolute top-0 end-0 mt-1 me-1 icon" onClick={() => {handleRemoveEvent(id, event)}}/>
+                      <img src="/pencil-square.svg" alt="" className="position-absolute top-0 end-0 mt-5 me-1 icon" onClick={() => {handleUpdateEvent(event)}}/>
+                      </div>
+                    )}
                     <h3>
                       {event.date.replace(/-/g, "/")}{" "}
                       {event.startTime

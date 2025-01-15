@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button, Container, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RingLoader } from "react-spinners";
-import { resizeImage, uploader } from "./handleImage";
+import { resizeImage, uploaderIcon } from "./handleImage";
 import { getProfile, updateUserInfo } from "./dbControl";
 import Introduction from "./Introduction";
 import { toast } from "react-toastify";
@@ -48,14 +48,11 @@ function EditProfile({ user }) {
     e.preventDefault();
     setLoading(true);
 
-    let uploadedURL = icon ? await uploader(icon, iconName) : iconURL;
+    let uploadedURL = icon ? await uploaderIcon(icon, iconName, user.uid) : iconURL;
     
-    if (!uploadedURL) {
-      toast.error("ファイルのアップロードに失敗しました");
-      setLoading(false);
-      return;
+    if (uploadedURL) {
+      setIconURL(uploadedURL);
     }
-    setIconURL(uploadedURL);
 
     try {
       updateUserInfo(user.uid, uploadedURL, name, introduction);

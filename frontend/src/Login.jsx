@@ -26,7 +26,7 @@ const Login = () => {
         const isNewUser = await checkIfNewUser(user.uid);
   
         if (isNewUser) {
-          await createAccount(user.uid, user.displayName, user.photoURL, "");
+          await createAccount(user.uid, user.displayName, null, "");
           toast("Open Crewにようこそ！");
           navigate('/editprofile', { state: { isNewUser: true } });
         } else {
@@ -63,7 +63,7 @@ const Login = () => {
       ) : (
         <Button onClick={signIn}>
           サインイン
-        </Button> // サインインしていない場合はサインインボタン
+        </Button>
       )}
     </div>
   );

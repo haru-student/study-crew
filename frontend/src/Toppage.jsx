@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from "react";
 import Container from "react-bootstrap/esm/Container";
-import { Col, Row, Image } from "react-bootstrap";
+import { Image } from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 import { useNavigate, Link } from "react-router-dom";
 import { getProfile } from "./dbControl";
 import { RingLoader } from "react-spinners";
 import { getCircleDataById } from "./dbControl";
-import {toast} from "react-toastify";
+import DeleteAccount from "./DeleteAccount";
 
 function Toppage({ user }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [circles, setCircles] = useState([]);
+  const [confirm, setConfirm] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,13 +48,14 @@ function Toppage({ user }) {
 
   return (
     <>
+      <DeleteAccount confirm={confirm} setConfirm={setConfirm} user={user}/>
       {loading ? (
         <div className="d-flex justify-content-center mt-4">
           <RingLoader size={48} color="blue" />
         </div>
       ) : (
-        <Container fluid className="toppage text-center border shadow p-3">
-          <div className="position-relative">
+        <Container fluid className="toppage">
+          <div className="position-relative text-center border shadow p-3">
             <div className="position-absolute top-0 start-0 profile-title">Your Profile</div>
             <Image
               src={profile?.icon || user?.photoURL}
@@ -125,6 +127,7 @@ function Toppage({ user }) {
               )}
             </div>
           </div>
+          <div onClick={() => {setConfirm(true)}} className="deleteAccount mx-auto mt-5">アカウントを削除する</div>
         </Container>
       )}
     </>

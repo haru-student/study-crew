@@ -641,14 +641,7 @@ function Newsession({ user }) {
                         : event.endTime
                         ? `開始時刻未定 〜 ${event.endTime}`
                         : ""}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDeleteEvent(index)}
-                        className="ml-2"
-                      >
-                        削除
-                      </Button>
+                        <img src="/trash.svg" alt="" className="me-2"  onClick={() => handleDeleteEvent(index)}/>
                     </li>
                   ))}
                 </ul>

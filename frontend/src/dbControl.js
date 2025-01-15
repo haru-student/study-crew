@@ -1,4 +1,5 @@
-import { db } from "./firebase";
+import { deleteUser, reauthenticateWithPopup } from "firebase/auth";
+import { db, provider, auth } from "./firebase";
 import {
   doc,
   getDoc,
@@ -10,6 +11,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
+import { deleteFile } from "./handleImage";
 
 //グループデータの取得
 const getCircleDataById = async (id) => {
@@ -26,12 +28,46 @@ const getCircleDataById = async (id) => {
     toast.Error("グループデータの取得に失敗しました");
   }
 };
-
-//イベントの追加、削除、更新
-const updateCircleEvents = async (id, updatedEvents) => {
+const expiredEvent = async (id, updatedEvents) => {
   const circleRef = doc(db, "circles", id);
   await updateDoc(circleRef, { events: updatedEvents });
 };
+
+const updateEvent = async (circleId, identify, updatedEventData) => {
+  const docRef = doc(db, "circles", circleId); // circlesコレクションのドキュメント参照
+
+  try {
+    // 現在のcircleデータを取得
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const currentData = docSnap.data();
+      const currentEvents = currentData.events || []; // 配列`events`を取得
+
+      // 特定のイベントを更新
+      const updatedEvents = currentEvents.map((event) =>
+        event.identify === identify ? { ...event, ...updatedEventData } : event
+      );
+
+      // 更新したイベント配列をFirestoreに保存
+      await updateDoc(docRef, { events: updatedEvents });
+    } 
+  } catch (error) {
+    console.error("Error updating event in circles collection:", error);
+  }
+};
+
+const removeEvent = async (id, eventToRemove) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    await updateDoc(circleRef, {
+      events: arrayRemove(eventToRemove),
+    });
+    toast.success("Event removed successfully.");
+  } catch (error) {
+    console.error("Error removing event:", error);
+  }
+}
 
 const registerEvent = async (id, newEvent) => {
   const circleRef = doc(db, "circles", id);
@@ -139,9 +175,11 @@ const removeMember = async (id, userId, navigate) => {
 
     // ホストがいない場合はグループを削除
     if (circle.host.length === 1 && circle.host.includes(userId)) {
+      if (circle.fileURL){
+        await deleteFile(circle.fileURL);
+      }
       await deleteCircle(id, currentMembers); // 削除前のメンバーリストを渡す
       toast.warning("管理者が不在となったため、このグループは削除されます。");
-      navigate("/meetsup"); // ホームページや適切なルートにリダイレクト
     } else {
       toast.success("グループを退会しました");
       removeGroupList(id, userId);
@@ -329,21 +367,6 @@ const getProfile = async (userId) => {
   }
 };
 
-//ファイルの削除
-const deleteFile = async (fileURL) => {
-  const storage = getStorage();
-
-  const desertRef = ref(storage, fileURL);
-
-  deleteObject(desertRef)
-    .then(() => {
-      return;
-    })
-    .catch((error) => {
-      toast.error("エラーが発生しました");
-    });
-};
-
 const createAccount = async (uid, name, icon, introduction) => {
   try {
     // ユーザードキュメントへの参照を作成
@@ -365,11 +388,34 @@ const createAccount = async (uid, name, icon, introduction) => {
 const updateUserInfo = async (userId, icon, name, introduction) => {
   const userRef = doc(db, "users", userId);
 
-  await updateDoc(userRef, {
-    icon: icon,
-    name: name,
-    introduction: introduction,
-  });
+  try {
+    // ドキュメントの存在確認
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      // ドキュメントが存在しない場合は新規作成
+      await setDoc(userRef, {
+        icon: icon,
+        name: name,
+        introduction: introduction,
+        groups: [],
+      });
+    } else {
+      if (userDoc.icon){
+        deleteFile(userDoc.icon);
+      }
+      const preIcon = userDoc.icon;
+      // ドキュメントが存在する場合は更新
+      await updateDoc(userRef, {
+        icon: icon,
+        name: name,
+        introduction: introduction,
+      });
+    }
+  } catch (error) {
+    toast.error("プロフィールの更新に失敗しました");
+    console.error("Error updating user info:", error);
+  }
 };
 
 const checkIfNewUser = async (uid) => {
@@ -399,18 +445,72 @@ const removeGroupList = async (id, userId) => {
   }
 };
 
+const deleteAccount = async (user, navigate) => {
+  try {
+    if (!user) {
+      toast.error("No user is currently logged in");
+      return;
+    }
+
+    // usersコレクションからユーザーのデータを取得
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      let icon=null;
+      if (userData.icon){
+        icon=userData.icon;
+      }
+
+      // userData.groupsが配列かどうか確認
+      await reauthenticateUser(user);
+      if (Array.isArray(userData.groups)) {
+        // groupsリストの各サークルでremoveMemberを呼び出す
+        for (const circleId of userData.groups) {
+          await removeMember(circleId, user.uid, navigate);
+        }
+      }
+      // Firestoreからユーザーの情報を削除
+      await deleteDoc(userDocRef);
+      // Firebase Authenticationからユーザーを削除
+      await deleteUser(user);
+      console.log(icon);
+      if (icon){
+        deleteFile(icon);
+      }
+      
+
+      toast.success("アカウント削除が完了しました。");
+      navigate("/"); // アカウント削除後に遷移するページ
+    }
+  } catch (error) {
+    toast.error("アカウント削除に失敗しました");
+  }
+};
+const reauthenticateUser = async (user) => {
+  try {
+    // ここで再認証を行います
+    await reauthenticateWithPopup(user, provider);
+  } catch (error) {
+    throw error; // 再認証が失敗した場合はエラーを投げて処理を止める
+  }
+};
+
 export {
   getCircleDataById,
-  updateCircleEvents,
+  updateEvent,
+  removeEvent,
   newMember,
   removeMember,
   joinEvent,
   cancelEvent,
   getProfile,
-  deleteFile,
   createAccount,
   updateUserInfo,
   checkIfNewUser,
   addGroupList,
   registerEvent,
+  deleteAccount,
+  expiredEvent
 };
