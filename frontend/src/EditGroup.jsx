@@ -93,6 +93,7 @@ function EditGroup({ editGroup, setEditGroup, circle, setLoading }) {
         members: circle.members,
         host: circle.host,
         update: currentTime,
+        block: circle.block
       };
 
       Object.keys(data).forEach((key) => {

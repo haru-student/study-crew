@@ -1,20 +1,20 @@
 import React from "react";
 import Modal from "react-modal";
 import { Button } from "react-bootstrap";
-import { deleteAccount } from "./dbControl";
+import { addBlock } from "./dbControl";
 import { useNavigate } from "react-router-dom";
 Modal.setAppElement("#root");
 
-function DeleteAccount({ confirm, setConfirm, user }) {
-    const navigate = useNavigate();
-    const handleDeleteAccount = async() => {
-      setConfirm(false);
-      deleteAccount(user, navigate)
-    }
+function Block({ block, setBlock, id, blockTarget }) {
+  const navigate = useNavigate();
+  const handleBlock = async () => {
+    await addBlock(id, blockTarget.id, navigate);
+    setBlock(false);
+  }
   return (
     <Modal
-      isOpen={confirm}
-      onRequestClose={() => setConfirm(false)}
+      isOpen={block}
+      onRequestClose={() => setBlock(false)}
       style={{
         overlay: {
           backgroundColor: "rgba(128, 128, 128, 0.7)", // 半透明のグレー背景
@@ -34,21 +34,25 @@ function DeleteAccount({ confirm, setConfirm, user }) {
           padding: "20px", // 内側のパディング
         },
       }}
-      contentLabel="アカウントの削除の確認"
+      contentLabel="アカウントブロックの確認"
       className="confirm mx-auto d-flex flex-column position-relative border bg-white py-5 px-3 rounded"
     >
       <Button
         className="btn btn-light rounded-circle fs-5 border border-dark close-btn p-0 position-absolute top-0 end-0"
-        onClick={() => setConfirm(false)}
+        onClick={() => setBlock(false)}
       >
         ×
       </Button>
-      <h1 className="fs-3 text-start">アカウントを削除しますか？</h1>
-      <p className="text-start">ホストがあなた1人のグループがある場合、そのグループも削除されます。本当にアカウントを削除しますか？</p>
-      <Button className="btn-danger mb-3 mx-5" onClick={() => {handleDeleteAccount()}}>削除する</Button>
-      <Button className="mx-5" onClick={() => setConfirm(false)}>キャンセル</Button>
+      {blockTarget && (
+        <div>
+          <h1 className="fs-3 text-start">{blockTarget.name}ブロックしますか？</h1>
+          <p className="text-start">現在、ブロックの解除を行うことができません。</p>
+        </div>
+      )}
+      <Button className="btn-danger mb-3 mx-5" onClick={() => {handleBlock()}}>ブロックする</Button>
+      <Button className="mx-5" onClick={() => setBlock(false)}>キャンセル</Button>
     </Modal>
   )
 }
 
-export default DeleteAccount
+export default Block

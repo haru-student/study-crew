@@ -55,7 +55,7 @@ function EditProfile({ user }) {
     }
 
     try {
-      updateUserInfo(user.uid, uploadedURL, name, introduction);
+      updateUserInfo(user.uid, uploadedURL || user?.photoURL, name, introduction);
       setLoading(false);
       toast.success("プロフィールを設定しました！");
     } catch (error) {
@@ -112,6 +112,7 @@ function EditProfile({ user }) {
                 rows={5}
                 placeholder="自己紹介"
                 value={introduction}
+                maxLength={200}
                 onChange={(e) => setIntroduction(e.target.value)}
               />
             </Form.Group>

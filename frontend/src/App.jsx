@@ -14,6 +14,8 @@ import Detail from './Detail';
 import Blog from './Blog';
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Members from './Members';
+import Profile from './Profile';
 
 function App() {
   const [user] = useAuthState(auth);
@@ -33,6 +35,8 @@ function App() {
             <Route path={`/detail/:id`} element={<Detail user={user}/>} />
             <Route path={`/chat/:id`} element={<Chat user={user}/>} />
             <Route path={`/blog/:id`} element={<Blog user={user}/>} />
+            <Route path={`/members/:id`} element={<Members user={user}/>} />
+            <Route path={`/profile/:id`} element={<Profile user={user}/>} />
           </Routes>
         </main>
         <Footer />

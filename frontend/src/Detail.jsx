@@ -9,15 +9,23 @@ import {
   joinEvent,
   cancelEvent,
   removeEvent,
-  expiredEvent
+  expiredEvent,
+  getMembersInfo,
+  getBlogs,
+  getReviews,
+  getProfile,
+  deleteReview,
 } from "./dbControl";
 import { useNavigate } from "react-router-dom";
 import AddEvent from "./AddEvent";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import { RingLoader } from "react-spinners";
 import EditGroup from "./EditGroup";
 import ConfirmDeleteGroup from "./ConfirmDeleteGroup";
 import EditEvent from "./EditEvent";
+import { toast } from "react-toastify";
+import Review from "./Review";
+import AwesomeStarsRating from "react-awesome-stars-rating";
 
 function Detail({ user }) {
   const { id } = useParams();
@@ -28,6 +36,11 @@ function Detail({ user }) {
   const [confirm, setConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState("");
+  const [hosts, setHost] = useState([]);
+  const [blogs, setBlogs] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [addReview, setAddReview] = useState(false);
+  const [usersData, setUsersData] = useState({});
 
   const navigate = useNavigate();
 
@@ -57,71 +70,169 @@ function Detail({ user }) {
   useEffect(() => {
     fetchCircleData();
   }, [id]);
-  const handleRemoveMember = async () => {
-    if (circle.host.includes(user.uid) && circle.host.length===1){
-      setConfirm(true);
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const blogData = await getBlogs(id); // 非同期でブログデータを取得
+        setBlogs(blogData); // 取得後にステートを更新
+      } catch (error) {
+        console.log("ブログの取得に失敗しました", error);
+      }
+    };
+    const fetchReviews = async () => {
+      try {
+        const reviewData = await getReviews(id);
+        setReviews(reviewData);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    if (circle) {
+      // circle が存在する場合にブログを取得
+      fetchBlogs();
+      fetchReviews();
     }
-    else{
-      await removeMember(id, user.uid, navigate);
+  }, [circle]);
+
+  useEffect(() => {
+    const fetchUsersData = async () => {
+      const userIds = [...new Set(reviews.map((msg) => msg.user))];
+      const usersDataTemp = {}; // 一時的なオブジェクトでユーザー情報を集める
+
+      for (let userId of userIds) {
+        const reviewer = await getProfile(userId);
+        if (reviewer) {
+          // reviewer.exists() は不要
+          usersDataTemp[userId] = {
+            // オブジェクトを初期化
+            icon: reviewer.icon,
+            name: reviewer.name,
+          };
+        }
+      }
+
+      // 全てのユーザー情報をステートにセット
+      setUsersData(usersDataTemp);
+    };
+
+    if (reviews.length > 0) {
+      fetchUsersData(); // reviews が更新されたらユーザー情報を取得
+    }
+  }, [reviews]);
+
+  const fetchMembersInfo = async () => {
+    if (circle) {
+      const hostData = await getMembersInfo(circle.host);
+      setHost(hostData);
+    }
+  };
+  useEffect(() => {
+    fetchMembersInfo();
+  }, [circle]);
+  const handleRemoveMember = async () => {
+    if (circle.host.includes(user.uid) && circle.host.length === 1) {
+      setConfirm(true);
+    } else {
+      try {
+        await removeMember(id, user.uid, navigate);
+        toast.success("退会しました");
+      } catch {
+        toast.error("退会に失敗しました");
+      }
     }
     fetchCircleData(); // removeMember後に再度データを取得
   };
-  const handleNewMember = async(cId, uId, type) => {
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!id || !reviewId) return;
+    try {
+      await deleteReview(id, reviewId, user.uid);
+      fetchCircleData(); 
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const handleNewMember = async (cId, uId, type) => {
     await newMember(cId, uId, type);
     fetchCircleData();
-  }
+  };
   const handleCancelEvent = async (cId, uId, eventIdentify) => {
     await cancelEvent(cId, uId, eventIdentify);
     fetchCircleData();
-  }
+  };
   const handleJoinEvent = async (type, cId, uId, eventIdentify) => {
     await joinEvent(type, cId, uId, eventIdentify);
     fetchCircleData();
-  }
+  };
   const handleRemoveEvent = async (id, event) => {
     await removeEvent(id, event);
     fetchCircleData();
-  }
-  const handleUpdateEvent = async(event) => {
+  };
+  const handleUpdateEvent = async (event) => {
     setTarget(event);
-  }
+  };
   useEffect(() => {
-    if(target){
+    if (target) {
       setEditEvent(true);
     }
-  }, [target])
+  }, [target]);
 
   useEffect(() => {
-    if (!addEvent && !editGroup && !editEvent) {
+    if (!addEvent && !editGroup && !editEvent && !addReview) {
       fetchCircleData();
     }
-  }, [addEvent, editGroup, editEvent]);
-  
+  }, [addEvent, editGroup, editEvent, addReview]);
 
   if (!circle || loading) {
-    return <div className="d-flex justify-content-center mt-4">
-    <RingLoader size={48} color="blue" />
-  </div>;
+    return (
+      <div className="d-flex justify-content-center mt-4">
+        <RingLoader size={48} color="blue" />
+      </div>
+    );
   }
   return (
     <Container className="detail" key={circle.id}>
       <AddEvent addEvent={addEvent} setAddEvent={setAddEvent} circle={circle} />
-      <EditGroup editGroup={editGroup} setEditGroup={setEditGroup} circle={circle} setLoading={setLoading}/>
-      <ConfirmDeleteGroup confirm={confirm} setConfirm={setConfirm} circle={circle} user={user} setLoading={setLoading}/>
-      <EditEvent editEvent={editEvent} setEditEvent={setEditEvent} circle={circle} event={target}/>
+      <Review
+        addReview={addReview}
+        setAddReview={setAddReview}
+        circle={circle}
+        user={user}
+      />
+      <EditGroup
+        editGroup={editGroup}
+        setEditGroup={setEditGroup}
+        circle={circle}
+        setLoading={setLoading}
+      />
+      <ConfirmDeleteGroup
+        confirm={confirm}
+        setConfirm={setConfirm}
+        circle={circle}
+        user={user}
+        setLoading={setLoading}
+      />
+      <EditEvent
+        editEvent={editEvent}
+        setEditEvent={setEditEvent}
+        circle={circle}
+        event={target}
+      />
       <Row>
         <div className="d-flex align-items-start justify-content-between">
           <h1 className="fs-1 mb-2">{circle.name}</h1>
           {user && circle.host.includes(user.uid) && (
-            <Button className="rounded-pill mb-0" onClick={() => setEditGroup(true)}>編集する</Button>
+            <Button
+              className="rounded-pill mb-0"
+              onClick={() => setEditGroup(true)}
+            >
+              編集する
+            </Button>
           )}
         </div>
         <Col sm={12} md={8}>
-          <img
-            src={circle.fileURL}
-            alt=""
-            className="img-fluid mb-4 image"
-          />
+          <img src={circle.fileURL} alt="" className="img-fluid mb-4 image" />
           {circle.detail && (
             <div className="mb-2">
               <h2 className="fs-3 mb-0">概要</h2>
@@ -188,11 +299,28 @@ function Detail({ user }) {
             <div>
               <ul className="list-unstyled event">
                 {circle.events.map((event, index) => (
-                  <li key={index} className="border mb-3 p-2 fs-5 position-relative">
+                  <li
+                    key={index}
+                    className="border mb-3 p-2 fs-5 position-relative"
+                  >
                     {user && circle.host.includes(user.uid) && (
                       <div>
-                      <img src="/trash.svg" alt="" className="position-absolute top-0 end-0 mt-1 me-1 icon" onClick={() => {handleRemoveEvent(id, event)}}/>
-                      <img src="/pencil-square.svg" alt="" className="position-absolute top-0 end-0 mt-5 me-1 icon" onClick={() => {handleUpdateEvent(event)}}/>
+                        <img
+                          src="/trash.svg"
+                          alt=""
+                          className="position-absolute top-0 end-0 mt-1 me-1 icon"
+                          onClick={() => {
+                            handleRemoveEvent(id, event);
+                          }}
+                        />
+                        <img
+                          src="/pencil-square.svg"
+                          alt=""
+                          className="position-absolute top-0 end-0 mt-5 me-1 icon"
+                          onClick={() => {
+                            handleUpdateEvent(event);
+                          }}
+                        />
                       </div>
                     )}
                     <h3>
@@ -369,7 +497,12 @@ function Detail({ user }) {
                             variant="primary mt-3r"
                             className="d-block mx-auto my-3"
                             onClick={() =>
-                              handleJoinEvent("対面", id, user.uid, event.identify)
+                              handleJoinEvent(
+                                "対面",
+                                id,
+                                user.uid,
+                                event.identify
+                              )
                             }
                           >
                             対面参加
@@ -406,6 +539,72 @@ function Detail({ user }) {
                 )}
             </div>
           )}
+          <h2 className="fs-3 mb-2 mt-3">クチコミ</h2>
+          {reviews.length > 0 ? (
+            reviews.map((review, index) => {
+              const reviewer = usersData[review.user]; 
+              if (!reviewer) return null;
+              return (
+                <div
+                  key={index}
+                  className="border-bottom pb-3 position-relative"
+                >
+
+                  {user && user.uid === review.user && (
+                      <img
+                      src="/trash.svg"
+                      alt="削除アイコン"
+                      className="position-absolute top-0 end-0 mt-1 me-1 icon"
+                      onClick={() => {
+                        handleDeleteReview(review.id);
+                      }}
+                    />
+                  )}
+                  <div className="d-flex align-items-center">
+                    <img
+                      src={reviewer?.icon} // icon がない場合はデフォルト画像を表示
+                      alt="" // name がない場合は 'Unknown' を表示
+                      className="me-2 rounded-circle icon"
+                    />
+                    <p className="mb-0 fs-5">{reviewer?.name || "Unknown"}</p>
+                  </div>
+                  <div className="ms-2">
+                    <div className="value">
+                      <AwesomeStarsRating
+                        value={review.data.value} // 表示する星の数（例: 3.5）
+                        readonly={true} // ユーザーが変更できないようにする
+                      />
+                    </div>
+                    {review.data.atmosphere && (
+                      <p className="mt-2 mb-1">
+                        雰囲気：{review.data.atmosphere}
+                      </p>
+                    )}
+                    {review.data.age && (
+                      <p className="mb-1">年齢層：{review.data.age}</p>
+                    )}
+                    {review.data.detail && <p>{review.data.detail}</p>}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p>まだクチコミはありません</p>
+          )}
+
+          {user &&
+            circle &&
+            circle.members.includes(user.uid) &&
+            !circle.reviewers.includes(user.uid) &&
+            !circle.host.includes(user.uid) && (
+              <Button
+                variant="primary mt-3r"
+                className="d-block mx-auto my-3"
+                onClick={() => setAddReview(true)}
+              >
+                クチコミを投稿する
+              </Button>
+            )}
         </Col>
         <Col sm={12} md={4}>
           <div className="border-bottom mb-2">
@@ -472,10 +671,31 @@ function Detail({ user }) {
             <div className="border-bottom mb-2">
               <div className="d-flex align-items-center">
                 <img src="/person.svg" alt="" className="me-2" />
-                <p className="mb-0">
+                <p className="mb-1">
                   グループメンバー({circle.members.length}人)
                 </p>
               </div>
+              {hosts.length > 0 && (
+                <ul className="list-unstyled ms-2">
+                  {hosts.map((host, index) => (
+                    <li
+                      key={index}
+                      className="rounded-pill mini-list badge pe-3 py-1 mb-2"
+                    >
+                      <div className="d-flex align-items-center">
+                        <img src={host.icon} alt="" className="me-2" />
+                        <p className="mb-0">{host.name}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link
+                to={`/members/${id}`}
+                className="text-decoration-none text-center"
+              >
+                <p className="mb-0">参加メンバー一覧を見る</p>
+              </Link>
             </div>
           )}
           {circle.freq === "単発" && circle.type === "対面" && (
@@ -493,6 +713,12 @@ function Detail({ user }) {
                   </p>
                 )}
               </div>
+              <Link
+                to={`/members/${id}`}
+                className="text-decoration-none text-center"
+              >
+                <p className="mb-0">参加メンバー一覧を見る</p>
+              </Link>
             </div>
           )}
           {circle.freq === "単発" && circle.type === "オンライン" && (
@@ -510,6 +736,12 @@ function Detail({ user }) {
                   </p>
                 )}
               </div>
+              <Link
+                to={`/members/${id}`}
+                className="text-decoration-none text-center"
+              >
+                <p className="mb-0">参加メンバー一覧を見る</p>
+              </Link>
             </div>
           )}
           {circle.freq === "単発" && circle.type === "対面+オンライン" && (
@@ -532,7 +764,7 @@ function Detail({ user }) {
               <div className="border-bottom mb-2">
                 <div className="d-flex align-items-center">
                   <img src="/people.svg" alt="" className="me-2" />
-                  {circle.oneOffInpersonCapa ? (
+                  {circle.oneOffOnlineCapa ? (
                     <p className="mb-0">
                       参加人数: {circle.oneOffOnlineMember.length}人(定員
                       {circle.oneOffOnlineCapa}人)
@@ -543,6 +775,12 @@ function Detail({ user }) {
                     </p>
                   )}
                 </div>
+                <Link
+                  to={`/members/${id}`}
+                  className="text-decoration-none text-center"
+                >
+                  <p className="mb-0">参加メンバー一覧を見る</p>
+                </Link>
               </div>
             </div>
           )}
@@ -619,7 +857,26 @@ function Detail({ user }) {
                 グループを退会する
               </Button>
             )}
-          <h2 className="fs-5 mt-3">活動の記録</h2>
+          <h2 className="fs-4 mt-3 mb-3">活動の記録</h2>
+          {blogs.length > 0 ? (
+            <ul className="list-unstyled ms-2">
+              {blogs.slice(0, 3).map((blog, index) => (
+                <li key={index} className="position-relative border-botom">
+                  <h5>{blog.data.title}</h5>
+                  <p className="ms-1">{blog.data.content}</p>
+                  {blog.data.image && (
+                    <img
+                      src={blog.data.image}
+                      alt=""
+                      className="img-fluid mb-4 d-block mx-auto"
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>ブログはまだ投稿されていません</p>
+          )}
           <Link to={`/blog/${id}`} className="text-decoration-none text-center">
             <p>Show more</p>
           </Link>

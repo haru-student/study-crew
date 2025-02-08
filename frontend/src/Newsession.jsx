@@ -53,24 +53,25 @@ function Newsession({ user }) {
   const [oneinCapa, setOneinCapa] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [upload, setUpload] = useState(false);
 
 
   const handleFileChange = async (e) => { // async を追加
+    setUpload(true);
     const file = e.target.files[0]; // e.target.files[0] でファイルを取得
     if (file) {
       setFileName(file.name); // ファイル名を状態に設定
       try {
         const blob = await resizeImage(file); // 非同期処理を待つ
         setFile(blob); // Blob を状態に設定
+        setUpload(false);
       } catch (error) {
         toast.error("エラーが発生しました。もう一度お試しください"); // エラー時のログ出力
+        setUpload(false);
       }
     }
   };
   
-  
-
-
   const handleAddEvent = () => {
     const eventDateOnly = new Date(eventDate);
     const currentDate = new Date();
@@ -212,7 +213,10 @@ function Newsession({ user }) {
         events: eventDates,
         members: members,
         host: hosts,
-        update: currentTime
+        block: [],
+        update: currentTime,
+        reviewers: [],
+        blogName: `${event}のブログ`
       };
 
       Object.keys(data).forEach((key) => {
@@ -652,6 +656,7 @@ function Newsession({ user }) {
               variant="primary mt-3r"
               type="submit"
               className="d-block mx-auto"
+              disabled={upload}
             >
               登録する
             </Button>

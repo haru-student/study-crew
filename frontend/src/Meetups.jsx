@@ -70,7 +70,7 @@ function Meetups({ user }) {
   };
 
   if (!circles.length) {
-    return <Nosession user={user}/>;
+    return <Nosession user={user} />;
   }
 
   return (
@@ -94,11 +94,17 @@ function Meetups({ user }) {
               className="text-decoration-none"
             >
               <Card className="group">
-                {circle.fileURL && (
+                {circle.fileURL ? (
                   <Card.Img
                     variant="top"
-                    src={`${circle.fileURL}?w=100&h=160&fit=crop`} 
+                    src={`${circle.fileURL}?w=100&h=160&fit=crop`}
                     className="header"
+                  />
+                ) : (
+                  <Card.Img
+                    variant="top"
+                    src="/open-crew.png"
+                    className="header border"
                   />
                 )}
                 <Card.Body>

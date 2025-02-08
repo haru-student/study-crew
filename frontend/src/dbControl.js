@@ -9,6 +9,12 @@ import {
   arrayRemove,
   setDoc,
   writeBatch,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  orderBy,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { deleteFile } from "./handleImage";
@@ -86,6 +92,10 @@ const newMember = async (id, userId, type) => {
   const circleRef = doc(db, "circles", id);
   const circleSnap = await getDoc(circleRef);
   const circle = circleSnap.data();
+  if (circle.block.includes(userId)){
+    toast.error("グループに参加できません");
+    return;
+  }
   if (type === "group") {
     try {
       await updateDoc(circleRef, {
@@ -181,12 +191,10 @@ const removeMember = async (id, userId, navigate) => {
       await deleteCircle(id, currentMembers); // 削除前のメンバーリストを渡す
       toast.warning("管理者が不在となったため、このグループは削除されます。");
     } else {
-      toast.success("グループを退会しました");
       removeGroupList(id, userId);
     }
   } catch (error) {
     console.error("Error in removeMember:", error);
-    toast.error("グループ退会に失敗しました。もう一度お試しください。");
   }
 };
 
@@ -497,6 +505,172 @@ const reauthenticateUser = async (user) => {
   }
 };
 
+const getMembersInfo = async (memberIds) => {
+  try {
+    // Firestoreクエリの作成
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("__name__", "in", memberIds));
+
+    // クエリを実行してデータを取得
+    const querySnapshot = await getDocs(q);
+
+    // 結果を配列に変換
+    const members = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return members;
+  } catch (error) {
+    console.error("Error fetching group members:", error);
+    throw error;
+  }
+}
+
+const newHost =async (id, memberId) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    await updateDoc(circleRef, {
+      host: arrayUnion(memberId),
+    });
+    toast.success("管理者権限を付与しました")
+  } catch (error) {
+    console.error(error);
+    toast.error("管理者権限の付与に失敗しました。もう一度お試しください。");
+  }
+}
+
+const addBlock =async (id, memberId, navigate) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    await removeMember(id, memberId, navigate);
+    await updateDoc(circleRef, {
+      block: arrayUnion(memberId),
+    });
+    toast.success("ブロックしました。")
+  } catch (error) {
+    console.error(error);
+    toast.error("ブロックに失敗しました。もう一度お試しください。");
+  }
+}
+
+//ブログの投稿
+const createBlog = async (id, data) => {
+  const circleRef = doc(db, "circles", id);
+
+  try {
+    // データを投稿
+    await addDoc(collection(db, `circles/${circleRef.id}/blogs`), {
+      data,
+      createdAt: new Date(),
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const getBlogs = async (id) => {
+  try {
+    // 'blogs' サブコレクションの 'createdAt' フィールドでソートするクエリを作成
+    const blogsRef = collection(db, "circles", id, "blogs");
+    const q = query(blogsRef, orderBy("createdAt"));  // 'createdAt' フィールドで昇順にソート
+
+    // クエリを実行してデータを取得
+    const querySnapshot = await getDocs(q);
+
+    // ソートされたブログデータを配列として取得
+    const blogs = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()  // ドキュメントのデータを取得
+    }));
+
+    // 結果をリストとして返す
+    return blogs;
+    
+  } catch (error) {
+    console.error("Error getting blogs:", error);
+  }
+};
+
+const deleteBlog = async(id, blogId, image) => {
+  try {
+    console.log(blogId)
+    const blogRef = doc(db, "circles", id, "blogs", blogId);
+    await deleteDoc(blogRef);
+    if(image){
+      await deleteFile(image)
+    }
+    toast.success("ブログを削除しました。");
+  } catch (error) {
+    toast.warning("投稿の削除に失敗しました")
+    console.error(error)
+  }
+}
+const changeBlogName = async(id, text) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    await updateDoc(circleRef, {
+      blogName: text
+    })
+  }
+  catch(error){
+    toast.warning("ブログ名を更新できませんでした")
+  }
+}
+
+const newReview = async(id, data, userId) => {
+  const circleRef = doc(db, "circles", id);
+  try {
+    // データを投稿
+    await addDoc(collection(db, `circles/${circleRef.id}/reviews`), {
+      data,
+      createdAt: new Date(),
+      user: userId
+    });
+    await updateDoc(circleRef, {
+      reviewers: arrayUnion(userId),
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const getReviews = async (id) => {
+  try {
+    // 'blogs' サブコレクションの 'createdAt' フィールドでソートするクエリを作成
+    const reviewsRef = collection(db, "circles", id, "reviews");
+    const q = query(reviewsRef, orderBy("createdAt"));  // 'createdAt' フィールドで昇順にソート
+
+    const querySnapshot = await getDocs(q);
+
+    // ソートされたブログデータを配列として取得
+    const reviews = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    // 結果をリストとして返す
+    return reviews;
+    
+  } catch (error) {
+    console.error("Error getting blogs:", error);
+  }
+};
+const deleteReview = async(id, reviewId, userId) => {
+  try {
+    const reviewRef = doc(db, "circles", id, "reviews", reviewId);
+    await deleteDoc(reviewRef);
+    await updateDoc(reviewRef, {
+      reviewers: arrayRemove(userId), // "items" は削除対象の配列フィールド名
+    });
+    toast.success("レビューを削除しました。");
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+
+
 export {
   getCircleDataById,
   updateEvent,
@@ -512,5 +686,15 @@ export {
   addGroupList,
   registerEvent,
   deleteAccount,
-  expiredEvent
+  expiredEvent,
+  getMembersInfo,
+  newHost,
+  addBlock,
+  createBlog,
+  getBlogs,
+  deleteBlog,
+  changeBlogName,
+  newReview,
+  getReviews,
+  deleteReview
 };
