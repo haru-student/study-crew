@@ -14,6 +14,7 @@ function EditProfile({ user }) {
   const [name, setName] = useState("");
   const [introduction, setIntroduction] = useState("");
   const [loading, setLoading] = useState(false);
+  const [upload, setUpload] = useState(false);
 
   const location = useLocation();
   const isNewUser = location.state?.isNewUser;
@@ -32,17 +33,20 @@ function EditProfile({ user }) {
   }, [user]);
 
   const handleFileChange = async (e) => { 
+    setUpload(true);  // アップロードが開始された時点でtrueに設定
     const file = e.target.files[0]; // ファイルを取得
     if (file) {
       setIconName(file.name); // ファイル名を状態に設定
       try {
-        const resizedBlob = await resizeImage(file); // 画像リサイズを非同期で実行
-        setIcon(resizedBlob); // リサイズした画像を状態に設定
+        const blob = await resizeImage(file); // 非同期で画像をリサイズ
+        setIcon(blob); // Blobを状態に設定
       } catch (error) {
-        toast.error("エラーが発生しました");// エラー時のログ出力
+        toast.error("エラーが発生しました。もう一度お試しください"); // エラー時のログ
       }
     }
+    setUpload(false); // アップロード処理が完了したらfalseに設定
   };
+  
 
   const createAccount = async (e) => {
     e.preventDefault();
@@ -116,7 +120,7 @@ function EditProfile({ user }) {
                 onChange={(e) => setIntroduction(e.target.value)}
               />
             </Form.Group>
-            <Button variant="primary mt-3" type="submit" className="d-block mx-auto">
+            <Button variant="primary mt-3" type="submit" className="d-block mx-auto" disabled={upload}>
               保存
             </Button>
           </Form>

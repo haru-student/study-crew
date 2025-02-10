@@ -30,6 +30,7 @@ function NewBlog({ addBlog, setAddBlog, circle }) {
         setUpload(false);
       }
     }
+    setUpload(false);
   };
 
   const handleAddBlog = async (e) => {

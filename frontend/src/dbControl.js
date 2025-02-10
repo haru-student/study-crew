@@ -429,7 +429,7 @@ const updateUserInfo = async (userId, icon, name, introduction) => {
 const checkIfNewUser = async (uid) => {
   const userDocRef = doc(db, "users", uid);
   const userDoc = await getDoc(userDocRef);
-  return !userDoc.exists(); // ドキュメントが存在しなければ新規ユーザー
+  return !userDoc.exists();
 };
 
 const addGroupList = async (id, userId) => {

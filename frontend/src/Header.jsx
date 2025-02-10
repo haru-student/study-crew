@@ -7,7 +7,7 @@ import  Login  from './Login';
 
 function Header({ user }) {
   return (
-    <Navbar expand="lg" className="bg-body-tertiary mb-5 w-100">
+    <Navbar expand="lg" className="bg-body-tertiary mb-5 w-100 fixed-top">
       <Container>
         <Navbar.Brand as={Link} to="/" className='title'>Open Crew</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

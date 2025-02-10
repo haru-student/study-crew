@@ -21,19 +21,23 @@ function EditGroup({ editGroup, setEditGroup, circle, setLoading }) {
   const [fileName, setFileName] = useState("");
   const [file, setFile] = useState("");
 
-  const handleFileChange = async (e) => {
-    // async を追加
+  const [upload, setUpload]= useState(false);
+
+  const handleFileChange = async (e) => { // async を追加
+    setUpload(true);
     const file = e.target.files[0]; // e.target.files[0] でファイルを取得
     if (file) {
       setFileName(file.name); // ファイル名を状態に設定
       try {
         const blob = await resizeImage(file); // 非同期処理を待つ
         setFile(blob); // Blob を状態に設定
+        setUpload(false);
       } catch (error) {
-        console.error(error);
         toast.error("エラーが発生しました。もう一度お試しください"); // エラー時のログ出力
+        setUpload(false);
       }
     }
+    setUpload(false);
   };
 
   // モーダルを閉じる処理
@@ -303,7 +307,7 @@ function EditGroup({ editGroup, setEditGroup, circle, setLoading }) {
             onChange={(e) => setDetail(e.target.value)}
           />
         </Form.Group>
-        <Button className="d-block mx-auto mt-2" type="submit">
+        <Button className="d-block mx-auto mt-2" type="submit" disabled={upload}>
           更新
         </Button>
       </Form>

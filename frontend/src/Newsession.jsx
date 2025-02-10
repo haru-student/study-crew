@@ -70,6 +70,7 @@ function Newsession({ user }) {
         setUpload(false);
       }
     }
+    setUpload(false);
   };
   
   const handleAddEvent = () => {
