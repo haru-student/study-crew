@@ -1,15 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { auth, db } from "./firebase"; // Firebase認証とFirestoreのインポート
 import { useNavigate } from "react-router-dom";
 import Button from "react-bootstrap/Button";
 import { toast } from "react-toastify";
 import { doc, setDoc } from "firebase/firestore"; // Firestoreにデータを保存するためのインポート
 import { createAccount } from "./dbControl";
+import { IpContext } from "./IpContext";
 
 const Terms = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const ip = useContext(IpContext);
 
   // 認証状態を監視
   useEffect(() => {
@@ -48,7 +50,7 @@ const Terms = () => {
   const handleAgree = () => {
     if (user) {
       // Firestoreに新規ユーザーの情報を保存
-      createAccount(user.uid, user.displayName, user.photoURL, "")
+      createAccount(user.uid, user.displayName, user.photoURL, "", ip)
         .then(() => {
           toast.success("同意ありがとうございます！");
           navigate("/editprofile"); // ここで遷移
@@ -79,10 +81,10 @@ const Terms = () => {
   }
 
   return (
-    <div className="terms-container">
+    <div className="terms mx-auto text-center">
       <h2>利用規約</h2>
       <p>このアプリを利用するには、以下の利用規約に同意する必要があります。</p>
-      <Button variant="success" onClick={handleAgree}>同意する</Button>
+      <Button variant="success me-2" onClick={handleAgree}>同意する</Button>
       <Button variant="danger" onClick={handleDisagree}>同意しない</Button>
     </div>
   );

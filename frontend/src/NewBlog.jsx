@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Modal from "react-modal";
 import { Button, Form } from "react-bootstrap";
 import { createBlog } from "./dbControl";
 import { toast } from "react-toastify";
 import { resizeImage, uploader } from "./handleImage";
+import { IpContext } from "./IpContext";
 Modal.setAppElement("#root");
 
 function NewBlog({ addBlog, setAddBlog, circle }) {
@@ -14,6 +15,7 @@ function NewBlog({ addBlog, setAddBlog, circle }) {
   const [fileName, setFileName] = useState("");
   const [fileURL, setFileURL] = useState("");
   const [upload, setUpload] = useState(false);
+  const ip = useContext(IpContext);
 
   
   const handleFileChange = async (e) => { // async を追加
@@ -66,7 +68,7 @@ function NewBlog({ addBlog, setAddBlog, circle }) {
 
     // Firestoreへの登録処理
     try {
-      await createBlog(circle.id, newBlog); // 作成したイベントオブジェクトを渡す
+      await createBlog(circle.id, newBlog, ip); // 作成したイベントオブジェクトを渡す
       // フィールドのリセット
       setTitle("");
       setContent("");

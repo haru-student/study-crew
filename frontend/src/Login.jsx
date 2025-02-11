@@ -17,7 +17,7 @@ const Login = () => {
         setIsSignedIn(true);
 
         if (isNewUser) {
-          navigate("/terms"); // 新規ユーザーなら利用規約ページへ
+          navigate("/terms");
         } 
       } else {
         setIsSignedIn(false);
@@ -38,7 +38,6 @@ const Login = () => {
       } else {
         toast("おかえりなさい！");
         setIsSignedIn(true);
-        navigate("/");
       }
     } catch (error) {
       console.error("サインインに失敗しました", error);

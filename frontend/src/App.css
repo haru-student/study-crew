@@ -224,12 +224,12 @@
 
 .blog{
   width: 800px;
-  max-width: 95%;
+  max-width: 100%;
   background-color: rgb(245, 240, 236);
-  padding-top: 1em;
-  padding-bottom: 1em;
-  padding-left: 1em;
-  padding-right: 1em;
+  padding-top: 1%;
+  padding-bottom: 1%;
+  padding-left: 1%;
+  padding-right: 1%;
   min-height: 400px;
 }
 
@@ -254,8 +254,20 @@
   background-color: white;
   max-width: 300px;
   width: fit-content;
+  cursor: default; 
 }
 
 .main-container{
   margin-top: 80px;
+}
+
+.popup-container {
+  width: fit-content;
+  margin-left: auto;
+  cursor: default;
+}
+
+.terms{
+  width: 500px;
+  max-width: 100%;
 }

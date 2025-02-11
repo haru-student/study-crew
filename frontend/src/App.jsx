@@ -17,31 +17,35 @@ import "react-toastify/dist/ReactToastify.css";
 import Members from './Members';
 import Profile from './Profile';
 import Terms from './Terms';
+import { IpProvider } from "./IpContext";
+
 function App() {
   const [user] = useAuthState(auth);
 
   return (
     <BrowserRouter>
-      <div className="d-flex flex-column vh-100">
-        <Header user={user} />
-        <main className="flex-grow-1 main-container">
-        <ToastContainer />
-          <Routes>
-            <Route path="/" element={<Home user={user} />} />
-            <Route path="/meetsup" element={<Meetups user={user} />} /> 
-            <Route path="/chatgroup" element={<Chat user={user} />} /> 
-            <Route path="/createsession" element={<Newsession user={user}/>} /> 
-            <Route path="/editprofile" element={<EditProfile user={user}/>} />
-            <Route path={`/detail/:id`} element={<Detail user={user}/>} />
-            <Route path={`/chat/:id`} element={<Chat user={user}/>} />
-            <Route path={`/blog/:id`} element={<Blog user={user}/>} />
-            <Route path={`/members/:id`} element={<Members user={user}/>} />
-            <Route path={`/profile/:id`} element={<Profile user={user}/>} />
-            <Route path="/terms" element={<Terms user={user}/>} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <IpProvider>
+        <div className="d-flex flex-column vh-100">
+          <Header user={user} />
+          <ToastContainer />
+          <main className="flex-grow-1 main-container">
+            <Routes>
+              <Route path="/" element={<Home user={user} />} />
+              <Route path="/meetsup" element={<Meetups user={user} />} /> 
+              <Route path="/chatgroup" element={<Chat user={user} />} /> 
+              <Route path="/createsession" element={<Newsession user={user}/>} /> 
+              <Route path="/editprofile" element={<EditProfile user={user}/>} />
+              <Route path={`/detail/:id`} element={<Detail user={user}/>} />
+              <Route path={`/chat/:id`} element={<Chat user={user}/>} />
+              <Route path={`/blog/:id`} element={<Blog user={user}/>} />
+              <Route path={`/members/:id`} element={<Members user={user}/>} />
+              <Route path={`/profile/:id`} element={<Profile user={user}/>} />
+              <Route path="/terms" element={<Terms user={user}/>} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </IpProvider>
     </BrowserRouter>
   );
 }

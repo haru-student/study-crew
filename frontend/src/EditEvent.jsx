@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Modal from "react-modal";
 import { Button, Form } from "react-bootstrap";
 import { updateEvent } from "./dbControl";
 import { toast } from "react-toastify";
+import { IpContext } from "./IpContext";
 Modal.setAppElement("#root");
 
 function EditEvent({ editEvent, setEditEvent, circle, event }) {
@@ -11,6 +12,7 @@ function EditEvent({ editEvent, setEditEvent, circle, event }) {
   const [pass, setPass] = useState(event.password);
   const [pubDate, setPubDate] = useState(event.publishDate);
   const [notes, setNotes] = useState(event.notes);
+  const ip = useContext(IpContext);
 
   // モーダルが開かれた時に、フォームの初期値をセット
   useEffect(() => {
@@ -60,7 +62,7 @@ function EditEvent({ editEvent, setEditEvent, circle, event }) {
 
     // Firestoreへの登録処理
     try {
-      await updateEvent(circle.id, event.identify, newEvent); // 作成したイベントオブジェクトを渡す
+      await updateEvent(circle.id, event.identify, newEvent, ip); // 作成したイベントオブジェクトを渡す
       // フィールドのリセット
       setLocation(""); // locationのリセット
       setURL(""); // URLのリセット

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/esm/Button";
 import Container from "react-bootstrap/esm/Container";
@@ -9,6 +9,7 @@ import { RingLoader } from "react-spinners";
 import { uploader, resizeImage } from "./handleImage";
 import {addGroupList} from "./dbControl";
 import { toast } from "react-toastify";
+import { IpContext } from "./IpContext";
 
 function Newsession({ user }) {
   const navigate = useNavigate();
@@ -55,6 +56,9 @@ function Newsession({ user }) {
   const [loading, setLoading] = useState(false);
   const [upload, setUpload] = useState(false);
 
+  const ip = useContext(IpContext);
+
+  
 
   const handleFileChange = async (e) => { // async を追加
     setUpload(true);
@@ -195,6 +199,7 @@ function Newsession({ user }) {
     try {
       const currentTime = new Date().getTime();
       const data = {
+        ip,
         fileURL: uploadedURL || fileURL,
         name: event,
         freq: freq,

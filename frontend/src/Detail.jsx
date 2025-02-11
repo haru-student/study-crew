@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Col, Container, Row, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -26,6 +26,8 @@ import EditEvent from "./EditEvent";
 import { toast } from "react-toastify";
 import Review from "./Review";
 import AwesomeStarsRating from "react-awesome-stars-rating";
+import { IpContext } from "./IpContext";
+import Report from "./Report";
 
 function Detail({ user }) {
   const { id } = useParams();
@@ -41,8 +43,16 @@ function Detail({ user }) {
   const [reviews, setReviews] = useState([]);
   const [addReview, setAddReview] = useState(false);
   const [usersData, setUsersData] = useState({});
+  const [report, setReport] = useState(false);
+  const [improper, setImproper] = useState(null);
+  const ip = useContext(IpContext);
 
   const navigate = useNavigate();
+
+  const handleReport = async (msg) => {
+    setImproper(msg);
+    setReport(true);
+  };
 
   // 過去イベントを削除するロジック
   const filterExpiredEvents = (events) => {
@@ -148,7 +158,7 @@ function Detail({ user }) {
     if (!id || !reviewId) return;
     try {
       await deleteReview(id, reviewId, user.uid);
-      fetchCircleData(); 
+      fetchCircleData();
     } catch (error) {
       console.error(error);
     }
@@ -166,7 +176,7 @@ function Detail({ user }) {
     fetchCircleData();
   };
   const handleRemoveEvent = async (id, event) => {
-    await removeEvent(id, event);
+    await removeEvent(id, event, ip);
     fetchCircleData();
   };
   const handleUpdateEvent = async (event) => {
@@ -194,6 +204,7 @@ function Detail({ user }) {
   return (
     <Container className="detail" key={circle.id}>
       <AddEvent addEvent={addEvent} setAddEvent={setAddEvent} circle={circle} />
+      <Report report={report} setReport={setReport} user={user ? user.uid : null} data={improper}/>
       <Review
         addReview={addReview}
         setAddReview={setAddReview}
@@ -222,13 +233,17 @@ function Detail({ user }) {
       <Row>
         <div className="d-flex align-items-start justify-content-between">
           <h1 className="fs-1 mb-2">{circle.name}</h1>
-          {user && circle.host.includes(user.uid) && (
+          {user && circle.host.includes(user.uid) ? (
             <Button
               className="rounded-pill mb-0"
               onClick={() => setEditGroup(true)}
             >
               編集する
             </Button>
+          ) : (
+            <p className="ms-2 mb-0" onClick={() => handleReport(circle)}>
+            ︙
+          </p>
           )}
         </div>
         <Col sm={12} md={8}>
@@ -542,16 +557,15 @@ function Detail({ user }) {
           <h2 className="fs-3 mb-2 mt-3">クチコミ</h2>
           {reviews.length > 0 ? (
             reviews.map((review, index) => {
-              const reviewer = usersData[review.user]; 
+              const reviewer = usersData[review.user];
               if (!reviewer) return null;
               return (
                 <div
                   key={index}
                   className="border-bottom pb-3 position-relative"
                 >
-
-                  {user && user.uid === review.user && (
-                      <img
+                  {user && user.uid === review.user ? (
+                    <img
                       src="/trash.svg"
                       alt="削除アイコン"
                       className="position-absolute top-0 end-0 mt-1 me-1 icon"
@@ -559,6 +573,10 @@ function Detail({ user }) {
                         handleDeleteReview(review.id);
                       }}
                     />
+                  ) : (
+                    <p className="position-absolute top-0 end-0 mt-1 me-1 icon" onClick={() => handleReport(review)}>
+                    ︙
+                  </p>
                   )}
                   <div className="d-flex align-items-center">
                     <img

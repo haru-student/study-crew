@@ -18,6 +18,8 @@ import {
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { deleteFile } from "./handleImage";
+import { useContext } from "react";
+import { IpContext } from "./IpContext";
 
 //グループデータの取得
 const getCircleDataById = async (id) => {
@@ -39,7 +41,7 @@ const expiredEvent = async (id, updatedEvents) => {
   await updateDoc(circleRef, { events: updatedEvents });
 };
 
-const updateEvent = async (circleId, identify, updatedEventData) => {
+const updateEvent = async (circleId, identify, updatedEventData, ip) => {
   const docRef = doc(db, "circles", circleId); // circlesコレクションのドキュメント参照
 
   try {
@@ -57,30 +59,33 @@ const updateEvent = async (circleId, identify, updatedEventData) => {
 
       // 更新したイベント配列をFirestoreに保存
       await updateDoc(docRef, { events: updatedEvents });
+      await circleUpdate(id, ip);
     } 
   } catch (error) {
     console.error("Error updating event in circles collection:", error);
   }
 };
 
-const removeEvent = async (id, eventToRemove) => {
+const removeEvent = async (id, eventToRemove,ip) => {
   const circleRef = doc(db, "circles", id);
   try {
     await updateDoc(circleRef, {
       events: arrayRemove(eventToRemove),
     });
+    await circleUpdate(id,ip);
     toast.success("Event removed successfully.");
   } catch (error) {
     console.error("Error removing event:", error);
   }
 }
 
-const registerEvent = async (id, newEvent) => {
+const registerEvent = async (id, newEvent,ip) => {
   const circleRef = doc(db, "circles", id);
   try {
     await updateDoc(circleRef, {
       events: arrayUnion(newEvent),
     });
+    await circleUpdate(id,ip);
   } catch (error) {
     console.error(error);
     toast.error("イベントの追加に失敗しました。もう一度お試しください。");
@@ -375,13 +380,14 @@ const getProfile = async (userId) => {
   }
 };
 
-const createAccount = async (uid, name, icon, introduction) => {
+const createAccount = async (uid, name, icon, introduction, ip) => {
   try {
     // ユーザードキュメントへの参照を作成
     const userDocRef = doc(db, "users", uid);
 
     // データを保存
     await setDoc(userDocRef, {
+      ip,
       name: name || "ゲストユーザー",
       icon: icon || "",
       introduction: introduction || "",
@@ -393,7 +399,7 @@ const createAccount = async (uid, name, icon, introduction) => {
   }
 };
 
-const updateUserInfo = async (userId, icon, name, introduction) => {
+const updateUserInfo = async (userId, icon, name, introduction, ip) => {
   const userRef = doc(db, "users", userId);
 
   try {
@@ -403,6 +409,7 @@ const updateUserInfo = async (userId, icon, name, introduction) => {
     if (!userDoc.exists()) {
       // ドキュメントが存在しない場合は新規作成
       await setDoc(userRef, {
+        ip,
         icon: icon,
         name: name,
         introduction: introduction,
@@ -555,12 +562,13 @@ const addBlock =async (id, memberId, navigate) => {
 }
 
 //ブログの投稿
-const createBlog = async (id, data) => {
+const createBlog = async (id, data, ip) => {
   const circleRef = doc(db, "circles", id);
 
   try {
     // データを投稿
     await addDoc(collection(db, `circles/${circleRef.id}/blogs`), {
+      ip,
       data,
       createdAt: new Date(),
     });
@@ -618,11 +626,13 @@ const changeBlogName = async(id, text) => {
   }
 }
 
-const newReview = async(id, data, userId) => {
+const newReview = async(id, data, userId, ip) => {
   const circleRef = doc(db, "circles", id);
+
   try {
     // データを投稿
     await addDoc(collection(db, `circles/${circleRef.id}/reviews`), {
+      ip,
       data,
       createdAt: new Date(),
       user: userId
@@ -669,6 +679,41 @@ const deleteReview = async(id, reviewId, userId) => {
   }
 }
 
+const deleteChat = async(id, chatId) => {
+  const chatRef = doc(db, "circles", id, "chats", chatId);
+  try{
+    await deleteDoc(chatRef);
+  }
+  catch(error){
+    console.error(error);
+  }
+}
+
+const circleUpdate = async(id, newip) => {
+  const circleRef = doc(db, "circles", id);
+  try{
+    updateDoc(circleRef, {
+      ip: newip
+    })
+  }
+  catch(error){
+    console.log("エラーが発生しました");
+  }
+}
+
+const improper = async(userId, data) => {
+  try{
+    await addDoc(collection(db, "improper"), {
+      reporter: userId,
+      data
+    });
+    toast.success("この内容を報告しました")
+  }
+  catch(error){
+    console.error(error)
+    toast.warning("不適切報告に失敗しました。もう一度お試しください")
+  }
+}
 
 
 export {
@@ -696,5 +741,7 @@ export {
   changeBlogName,
   newReview,
   getReviews,
-  deleteReview
+  deleteReview,
+  deleteChat,
+  improper
 };

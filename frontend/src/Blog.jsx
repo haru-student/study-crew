@@ -9,6 +9,7 @@ import {
 } from "./dbControl";
 import NewBlog from "./NewBlog";
 import { toast } from "react-toastify";
+import Report from "./Report";
 
 function Blog({ user }) {
   const { id } = useParams();
@@ -16,6 +17,8 @@ function Blog({ user }) {
   const [addBlog, setAddBlog] = useState(false);
   const [blogs, setBlogs] = useState([]);
   const [text, setText] = useState(""); // 初期テキスト状態
+    const [report, setReport] = useState(false);
+    const [improper, setImproper] = useState(null);
 
   // サークルデータを取得する共通関数
   const fetchCircleData = useCallback(() => {
@@ -87,9 +90,14 @@ function Blog({ user }) {
         });
     }
   };
+  const handleReport = async(data)=>{
+    setImproper(data);
+    setReport(true)
+  }
 
   return (
     <Container className="blog position-relative">
+      <Report report={report} setReport={setReport} user={user ? user.uid : null} data={improper}/>
       <NewBlog addBlog={addBlog} setAddBlog={setAddBlog} circle={circle} />
       {user && circle && circle.host.includes(user.uid) && (
         <Button className="d-flex ms-auto" onClick={() => setAddBlog(true)}>
@@ -121,7 +129,7 @@ function Blog({ user }) {
           <ul className="list-unstyled mx-5">
             {blogs.map((blog, index) => (
               <li key={index} className="mx-5 position-relative mt-4">
-                {user && circle && circle.host.includes(user.uid) && (
+                {user && circle && circle.host.includes(user.uid) ? (
                   <img
                     src="/trash.svg"
                     alt="削除アイコン"
@@ -130,6 +138,10 @@ function Blog({ user }) {
                       handleDeleteBlog(blog.id, blog.data.image);
                     }}
                   />
+                ) : (
+                  <p className="position-absolute top-0 end-0 mt-1 me-1 icon" onClick={() => handleReport(blog)}>
+                  ︙
+                </p>
                 )}
                 <h2>{blog.data.title}</h2>
                 <p className="mx-1">{blog.data.content}</p>

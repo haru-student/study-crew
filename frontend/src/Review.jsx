@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import Modal from "react-modal";
 import { Button, Form } from "react-bootstrap";
 import { toast } from "react-toastify";
 import ReactStarsRating from 'react-awesome-stars-rating';
 import { newReview } from "./dbControl";
+import { IpContext } from "./IpContext";
 Modal.setAppElement("#root");
 
 function Review({ addReview, setAddReview, circle, user }) {
@@ -11,6 +12,7 @@ function Review({ addReview, setAddReview, circle, user }) {
   const [atmosphere, setAtmosphere] = useState("");
   const [age, setAge] = useState("");
   const [detail, setDetail] = useState("");
+  const ip = useContext(IpContext);
   const onChange = (value) => {
     setValue(value)
   };
@@ -26,7 +28,7 @@ function Review({ addReview, setAddReview, circle, user }) {
       date: currentTime,
     };
     try {
-      await newReview(circle.id, review, user.uid);
+      await newReview(circle.id, review, user.uid, ip);
       // フィールドのリセット
       setValue(3);
       setAtmosphere("");

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Modal from "react-modal";
 import { useNavigate } from "react-router-dom";
 import { Button, Form } from "react-bootstrap";
 import { registerEvent } from "./dbControl";
 import { toast } from "react-toastify";
+import { IpContext } from "./IpContext";
 Modal.setAppElement("#root");
 
 function AddEvent({ addEvent, setAddEvent, circle }) {
@@ -19,6 +20,7 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
   const [pass, setPass] = useState("");
   const [pubDate, setPubDate] = useState("");
   const [notes, setNotes] = useState("");
+  const ip = useContext(IpContext);
 
   const handleAddEvent = async (e) => {
     e.preventDefault();
@@ -72,7 +74,7 @@ function AddEvent({ addEvent, setAddEvent, circle }) {
 
     // Firestoreへの登録処理
     try {
-      await registerEvent(circle.id, newEvent); // 作成したイベントオブジェクトを渡す
+      await registerEvent(circle.id, newEvent,ip); // 作成したイベントオブジェクトを渡す
       // フィールドのリセット
       setLocation(circle.location);
       setDate("");

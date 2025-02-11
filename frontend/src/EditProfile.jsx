@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Button, Container, Form } from "react-bootstrap";
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RingLoader } from "react-spinners";
@@ -6,6 +6,7 @@ import { resizeImage, uploaderIcon } from "./handleImage";
 import { getProfile, updateUserInfo } from "./dbControl";
 import Introduction from "./Introduction";
 import { toast } from "react-toastify";
+import { IpContext } from "./IpContext";
 
 function EditProfile({ user }) {
   const [icon, setIcon] = useState(null);
@@ -18,6 +19,8 @@ function EditProfile({ user }) {
 
   const location = useLocation();
   const isNewUser = location.state?.isNewUser;
+
+  const ip = useContext(IpContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,7 +62,7 @@ function EditProfile({ user }) {
     }
 
     try {
-      updateUserInfo(user.uid, uploadedURL || user?.photoURL, name, introduction);
+      updateUserInfo(user.uid, uploadedURL || user?.photoURL, name, introduction,ip);
       setLoading(false);
       toast.success("プロフィールを設定しました！");
     } catch (error) {
