@@ -17,7 +17,7 @@ const Login = () => {
         setIsSignedIn(true);
 
         if (isNewUser) {
-          navigate("/terms");
+          navigate("/agreement");
         } 
       } else {
         setIsSignedIn(false);
@@ -34,7 +34,7 @@ const Login = () => {
       const isNewUser = await checkIfNewUser(user.uid, user);
 
       if (isNewUser) {
-        navigate("/terms");
+        navigate("/agreement");
       } else {
         toast("おかえりなさい！");
         setIsSignedIn(true);

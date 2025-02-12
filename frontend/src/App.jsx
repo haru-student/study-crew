@@ -18,6 +18,8 @@ import Members from './Members';
 import Profile from './Profile';
 import Terms from './Terms';
 import { IpProvider } from "./IpContext";
+import TermsOfUse from './TermsOfUse';
+import Privacy from './Privacy';
 
 function App() {
   const [user] = useAuthState(auth);
@@ -40,7 +42,9 @@ function App() {
               <Route path={`/blog/:id`} element={<Blog user={user}/>} />
               <Route path={`/members/:id`} element={<Members user={user}/>} />
               <Route path={`/profile/:id`} element={<Profile user={user}/>} />
-              <Route path="/terms" element={<Terms user={user}/>} />
+              <Route path="/agreement" element={<Terms user={user}/>} />
+              <Route path="/terms" element={<TermsOfUse />} />
+              <Route path="/privacy" element={<Privacy />} />
             </Routes>
           </main>
           <Footer />
