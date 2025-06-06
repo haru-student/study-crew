@@ -1,4 +1,0 @@
-name: study crew, manabi circle, study link, study fellow
-content: 勉強会の募集、アーカイブの保存など
-12/18start
-12/18 ヘッダーの追加（途中）、ログイン機能、トップページの作成途中

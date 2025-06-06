@@ -247,7 +247,9 @@ function Detail({ user }) {
           )}
         </div>
         <Col sm={12} md={8}>
-          <img src={circle.fileURL} alt="" className="img-fluid mb-4 image" />
+          {circle && circle.fileURL && (
+            <img src={circle.fileURL} alt="" className="img-fluid mb-4 image" />
+          )}
           {circle.detail && (
             <div className="mb-2">
               <h2 className="fs-3 mb-0">概要</h2>

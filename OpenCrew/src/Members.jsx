@@ -136,17 +136,8 @@ function Members({ user }) {
                   />
                   <div className="text-start">
                     <b className="fs-4">{host.name}</b>
-                    <p className="mt-2">
-                      {host.introduction && host.introduction.length > 50 ? (
-                        <span
-                          dangerouslySetInnerHTML={{
-                            __html: host.introduction.replace(
-                              /(.{50})(?=.)/g,
-                              "$1<br />"
-                            ),
-                          }}
-                        />
-                      ) : (
+                    <p className="mt-2 text-wrap">
+                      {host.introduction && (
                         host.introduction
                       )}
                     </p>

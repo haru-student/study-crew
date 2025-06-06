@@ -92,7 +92,7 @@ function Toppage({ user }) {
                               </div>
                             )}
                             <Image
-                              src={circle.fileURL}
+                              src={circle.fileURL || "/open-crew.png"}
                               alt=""
                               fluid
                             ></Image>

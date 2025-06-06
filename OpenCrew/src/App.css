@@ -208,15 +208,16 @@
 
 .member-list {
   width: 800px;
-  height: 120px;
+  max-width: 90%;
+  height: auto;
   background-color: rgb(244, 241, 241);
   color: black;
   font-size: 1em;
   font-weight: 400;
 }
 .member-list img{
-  width: 100px;
-  height: 100px;
+  width: 20%;
+  height: auto;
   border-radius: 50%;
   object-fit: cover;  /* はみ出た部分を隠す */
   object-position: center;
