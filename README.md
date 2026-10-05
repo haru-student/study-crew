@@ -1,6 +1,38 @@
 # Open Crew
 
 https://study-crew.web.app/
+> 現在、利用実態がなく、昨今のサイバー攻撃の増加を踏まえて非公開としています。内容については以下のスクリーンショット及びデモ動画をご覧ください。
+
+## スクリーンショット
+
+代表的な画面のスクリーンショットを添付しています。より詳細なスクリーンショットやデモ動画については、以下のGoogle Driveをご覧ください。
+
+[詳細資料・スクリーンショット・デモ動画（Google Drive）](https://drive.google.com/drive/folders/196ReEMgOLP86pPstg8r6hi4j2DAxw0bN?usp=sharing)
+  
+### ホーム画面
+<img width="1920" height="1140" alt="ホーム画面" src="https://github.com/user-attachments/assets/426102a1-07bc-4d0b-ac4e-329dcb7c8337" />
+
+### イベント一覧画面
+<img width="1920" height="1140" alt="イベント一覧画面" src="https://github.com/user-attachments/assets/92c810b4-8f05-4a53-8ee8-4f9cdf1aeaa2" />
+
+### イベント詳細画面
+<img width="1920" height="1140" alt="イベント詳細画面" src="https://github.com/user-attachments/assets/7402e430-3966-4169-bd69-d49dff7b8f85" />
+
+### チャット画面
+<img width="1920" height="1140" alt="チャット画面" src="https://github.com/user-attachments/assets/a2a22cad-3062-4dac-84df-1b57f33bffca" />
+
+### イベント作成画面
+<img width="1920" height="1140" alt="イベント作成画面" src="https://github.com/user-attachments/assets/d35bc172-56f1-4c0a-892d-83f6a2427054" />
+
+
+
+
+
+
+
+
+
+
 
 ---
 
